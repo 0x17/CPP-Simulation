@@ -25,8 +25,13 @@ public:
 	AbstractSimulation(const std::string &dataFilename);
 	virtual ~AbstractSimulation() {}
 
-    Scenario pickDemands();
-    ScenarioList generateScenarios(int ntries);
+	enum class SamplingType {
+		Random,
+		Descriptive
+	};
+
+    Scenario pickDemands(int scenarioIx, int numScenarios, SamplingType stype = SamplingType::Descriptive);
+    ScenarioList generateScenarios(int ntries, SamplingType stype = SamplingType::Descriptive);
     std::vector<double> runSimulation(const std::vector<int> &bookingLimits, ScenarioList &scenarios);
 
     virtual double objective(const std::vector<int> &demands, const std::vector<int> &bookingLimits) = 0;

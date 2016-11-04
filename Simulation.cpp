@@ -70,20 +70,21 @@ double MultiClassSimulation::objective(const vector<int>& demands, const vector<
 	return profit;
 }
 
-AbstractSimulation::Scenario AbstractSimulation::pickDemands() {
+AbstractSimulation::Scenario AbstractSimulation::pickDemands(int scenarioIx, int numScenarios, SamplingType stype) {
     Scenario demands((unsigned long)numClasses);
     int ctr = 0;
     for(Customer &c : customers) {
-		demands[ctr++] = max(0, (int)round(Helpers::pickNormal(c.expD, c.devD)));
+		double samplingResult = (stype == SamplingType::Descriptive) ? Helpers::pickNormalDescriptive(c.expD, c.devD, scenarioIx, numScenarios) : Helpers::pickNormal(c.expD, c.devD);
+		demands[ctr++] = max(0, (int)round(samplingResult));
     }
     return demands;
 }
 
-AbstractSimulation::ScenarioList AbstractSimulation::generateScenarios(int ntries) {
+AbstractSimulation::ScenarioList AbstractSimulation::generateScenarios(int ntries, SamplingType stype) {
 	Helpers::resetSeed(42);
     ScenarioList scenarios((unsigned long) ntries);
     for(int i=0; i<ntries; i++) {
-        scenarios[i] = pickDemands();
+        scenarios[i] = pickDemands(i, ntries, stype);
     }
     return scenarios;
 }

@@ -7,7 +7,7 @@
 
 using namespace std;
 
-const int ntries = 50;
+const int ntries = 10;
 
 void runOptimizers() {
 	cout << "Number of scenarios: " << ntries << endl << endl;
@@ -20,7 +20,7 @@ void runOptimizers() {
 
 	vector<BookingLimitOptimizer *> optimizers = {  &evl, &ls, &gurobi };
 
-	auto scenarios = sim.generateScenarios(ntries);
+	auto scenarios = sim.generateScenarios(ntries, AbstractSimulation::SamplingType::Descriptive);
 
 	for(auto optimizer : optimizers) {
 		auto res = optimizer->solve(scenarios);

@@ -4,6 +4,7 @@
 
 #include "Helpers.h"
 
+#include <boost/math/special_functions/erf.hpp>
 #include <fstream>
 #include <random>
 #include <map>
@@ -36,8 +37,12 @@ double Helpers::pickNormal(double mean, double stddev) {
     return distCache[params](*gen);
 }
 
-double Helpers::invNormal(double x, double mu, double sigma) {
-	return 0.5 * erfc((x - mu) / (sigma * sqrt(2)));
+double Helpers::invNormal(double x, double mean, double stddev) {
+	return mean + sqrt(2) * stddev * boost::math::erfc_inv(2.0 * x);
+}
+
+double Helpers::pickNormalDescriptive(double mean, double stddev, int scenarioIx, int nscenarios) {
+	return invNormal(((double)scenarioIx + 0.5) / (double)nscenarios, mean, stddev);
 }
 
 double Helpers::vecAverage(const vector<double>& nums) {

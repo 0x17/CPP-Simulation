@@ -13,7 +13,8 @@ namespace Helpers {
 
 	void resetSeed(int seed);
     double pickNormal(double mean, double stddev);
-	double invNormal(double x, double mu, double sigma);
+	double invNormal(double x, double mean, double stddev);
+	double pickNormalDescriptive(double mean, double stddev, int scenarioIx, int nscenarios);
 
 	double vecAverage(const std::vector<double> & nums);
 
