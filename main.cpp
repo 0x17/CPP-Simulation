@@ -3,36 +3,34 @@
 #include "Simulation.h"
 #include "Evaluator.h"
 #include "LSSolver.h"
-#include "Stopwatch.h"
 #include "GurobiSolver.h"
 
 using namespace std;
 
-int ntries = 10000;
+const int ntries = 10000;
 
-void runSimulation3D() {
+void runOptimizers() {
 	cout << "Number of scenarios: " << ntries << endl << endl;
-	cout << "Full enumeration results: " << endl;
 
 	MultiClassSimulation sim;
+
 	Evaluator3D evl(sim);
-	Stopwatch sw;
+	LSOptimizer ls(sim);
+	GurobiOptimizer gurobi(sim);
+
+	vector<BookingLimitOptimizer *> optimizers = {  &evl, &ls, &gurobi };
 
 	auto scenarios = sim.generateScenarios(ntries);
 
-	sw.start();
-	auto res = evl.collectResults(scenarios);
-	auto opt = evl.computeOpt(res, true);
-	cout << "Time passed = " << sw.lookAndReset() << endl;
-	//cout << "Optimal solution from full enumeration: " << endl << opt << endl << endl;
-	cout << endl << endl;
-
-	solveWithLS(sim, scenarios);
-	solveWithGurobi(sim, scenarios);
+	for(auto optimizer : optimizers) {
+		auto res = optimizer->solve(scenarios);
+		cout << endl << optimizer->getName() << " results:" << endl;
+		cout << res << endl << endl;
+	}
 }
 
 int main() {
-	runSimulation3D();	
+	runOptimizers();	
 	getchar();
     return 0;
 }

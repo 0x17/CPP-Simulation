@@ -42,6 +42,32 @@ protected:
     int numClasses;
 };
 
+struct Result {
+	std::vector<int> bookingLimits;
+	double profit;
+
+	Result() : bookingLimits(0), profit(0) {}
+	Result(int nclasses) : bookingLimits(nclasses), profit(0) {}
+};
+
+using ResultList = std::vector<Result>;
+
+std::ostream &operator<<(std::ostream &os, Result const &res);
+
+class BookingLimitOptimizer {
+public:
+	BookingLimitOptimizer(std::string _name, AbstractSimulation &_sim) : sim(_sim), name(_name) {}
+	virtual ~BookingLimitOptimizer() {}
+	virtual Result solve(std::vector<std::vector<int>>& scenarios) = 0;
+
+	std::string getName() const { return name; }
+
+protected:
+	AbstractSimulation &sim;
+private:
+	std::string name;
+};
+
 class TwoClassSimulation : public AbstractSimulation {
 public:
     TwoClassSimulation(const std::string &dataFilename) : AbstractSimulation(dataFilename) {}

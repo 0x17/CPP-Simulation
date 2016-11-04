@@ -1,8 +1,10 @@
 #pragma once
 
 #include <vector>
+#include "Simulation.h"
 
-class AbstractSimulation;
-
-void solveWithGurobi(AbstractSimulation &sim, std::vector<std::vector<int>> &scenarios);
-
+class GurobiOptimizer : public BookingLimitOptimizer {
+public:
+	explicit GurobiOptimizer(AbstractSimulation& _sim) : BookingLimitOptimizer("Gurobi", _sim) {}
+	Result solve(std::vector<std::vector<int>>& scenarios) override;
+};

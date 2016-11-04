@@ -1,25 +1,13 @@
+#include <iostream>
+
 #include "Evaluator.h"
 #include "Simulation.h"
-#include <iostream>
 #include "Helpers.h"
+#include "Stopwatch.h"
 
 using namespace std;
 
-std::ostream &operator<<(std::ostream &os, AbstractEvaluator::Result const &res) {
-	bool first = true;
-	os << "profit=" << res.profit << ",";
-	os << "bookingLimits=(";
-	for (double bl : res.bookingLimits) {
-		if (!first)
-			os << ", ";
-		os << bl;
-		first = false;
-	}
-	os << ")";
-	return os;
-}
-
-AbstractEvaluator::Result AbstractEvaluator::computeOpt(const ResultList& results, bool printOpts) {
+Result AbstractEvaluator::computeOpt(const ResultList& results, bool printOpts) {
 	Result optResult;
 	optResult.profit = std::numeric_limits<float>::min();
 
@@ -30,10 +18,10 @@ AbstractEvaluator::Result AbstractEvaluator::computeOpt(const ResultList& result
 	}
 
 	if (printOpts) {
-		std::cout << "Primary opt: " << optResult << std::endl;
+		cout << "Primary opt: " << optResult << endl;
 		for (Result res : results) {
 			if (res.profit == optResult.profit && res.bookingLimits != optResult.bookingLimits) {
-				std::cout << "Alternative opt:" << res << std::endl;
+				cout << "Alternative opt:" << res << endl;
 			}
 		}
 	}
@@ -41,7 +29,16 @@ AbstractEvaluator::Result AbstractEvaluator::computeOpt(const ResultList& result
 	return optResult;
 }
 
-AbstractEvaluator::ResultList Evaluator2D::collectResults(AbstractSimulation::ScenarioList &scenarios) {
+Result AbstractEvaluator::solve(AbstractSimulation::ScenarioList& scenarios) {
+	Stopwatch sw;
+	sw.start();
+	auto res = collectResults(scenarios);
+	auto opt = computeOpt(res, true);
+	cout << "Time passed = " << sw.lookAndReset() << endl;
+	return opt;
+}
+
+ResultList Evaluator2D::collectResults(AbstractSimulation::ScenarioList &scenarios) {
 	ResultList results(sim.getC() + 1);
 	vector<int> bookingLimits(2);
 	bookingLimits[0] = sim.getC();
@@ -52,7 +49,7 @@ AbstractEvaluator::ResultList Evaluator2D::collectResults(AbstractSimulation::Sc
 	return results;
 }
 
-AbstractEvaluator::ResultList Evaluator3D::collectResults(AbstractSimulation::ScenarioList &scenarios) {
+ResultList Evaluator3D::collectResults(AbstractSimulation::ScenarioList &scenarios) {
 	ResultList results((int)(0.5 * (double)(sim.getC() + 1) * (double)(sim.getC() + 2)));
 	vector<int> bookingLimits(sim.getNumClasses());
 	bookingLimits[0] = sim.getC();

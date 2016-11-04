@@ -11,6 +11,20 @@
 
 using namespace std;
 
+std::ostream &operator<<(std::ostream &os, Result const &res) {
+	bool first = true;
+	os << "profit=" << res.profit << ",";
+	os << "bookingLimits=(";
+	for (double bl : res.bookingLimits) {
+		if (!first)
+			os << ", ";
+		os << bl;
+		first = false;
+	}
+	os << ")";
+	return os;
+}
+
 AbstractSimulation::AbstractSimulation(const string &dataFilename) {
     string errMsg;
     json11::Json obj = json11::Json::parse(Helpers::slurp(dataFilename), errMsg);

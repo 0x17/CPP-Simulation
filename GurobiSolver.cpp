@@ -1,15 +1,15 @@
-#include "GurobiSolver.h"
-
 #include <gurobi_c++.h>
 
+#include "GurobiSolver.h"
 #include "Simulation.h"
 #include "Matrix.h"
 #include "Helpers.h"
-#include "Evaluator.h"
 
 using namespace std;
 
-void solveWithGurobi(AbstractSimulation& sim, vector<vector<int>>& scenarios) {
+Result GurobiOptimizer::solve(std::vector<std::vector<int>>& scenarios) {
+	Result res;
+
 	int J = sim.getNumClasses(),
 		C = sim.getC(),
 		S = (int)scenarios.size();
@@ -25,7 +25,7 @@ void solveWithGurobi(AbstractSimulation& sim, vector<vector<int>>& scenarios) {
 
 	vector<GRBVar> bcj = Helpers::constructVector<GRBVar>(J, [&](int j) { return model.addVar(j == 0 ? C : 0, C, 0.0, GRB_INTEGER, "bcj" + to_string(j)); });
 	Matrix<GRBVar> njs(J, S, [&](int j, int s) { return model.addVar(0, floor(C / cj(j)), 0.0, GRB_CONTINUOUS, "njs" + to_string(j) + "," + to_string(s)); });
-	Matrix<GRBVar> rcapjs(J, S, [&](int j, int s) { return model.addVar(0, C, 0.0, GRB_CONTINUOUS, "rcapjs"+to_string(j)+","+to_string(s)); });
+	Matrix<GRBVar> rcapjs(J, S, [&](int j, int s) { return model.addVar(0, C, 0.0, GRB_CONTINUOUS, "rcapjs" + to_string(j) + "," + to_string(s)); });
 	Matrix<GRBVar> kjs(J, S, [&](int j, int s) { return model.addVar(0, floor(C / cj(j)), 0.0, GRB_INTEGER, "kjs" + to_string(j) + "," + to_string(s)); });
 
 	GRBLinExpr revSum;
@@ -54,19 +54,19 @@ void solveWithGurobi(AbstractSimulation& sim, vector<vector<int>>& scenarios) {
 	}
 
 	model.update();
- 
-	try {		
+
+	try {
 		model.optimize();
 
-		AbstractEvaluator::Result res;
 		res.profit = model.get(GRB_DoubleAttr_ObjVal);
 		res.bookingLimits = Helpers::constructVector<int>(J, [&](int j) { return (int)bcj[j].get(GRB_DoubleAttr_X); });;
 
-		cout << "Result: " << res << endl;
 		cout << "Optimality: " << (model.get(GRB_IntAttr_Status) == GRB_OPTIMAL) << endl;
 	}
 	catch (GRBException e) {
 		cout << "Error code = " << e.getErrorCode() << endl;
 		cout << e.getMessage() << endl;
 	}
+
+	return res;
 }
