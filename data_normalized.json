@@ -1,0 +1,18 @@
+{
+	"capacity": 100,
+	"clients": [
+		{ "name": "A",
+		  "expD": 30.0,
+		  "devD": 4.0,
+		  "description": "kurzfristig, 2 Wochen vorher, trifft spät ein",
+		  "consumptionPerReq": 1.0,
+		  "revenuePerReq": 3.0 },
+		  
+		{ "name": "B",
+		  "expD": 90.0,
+		  "devD": 4.0,
+		  "description": "langfristig, trifft früh ein",
+		  "consumptionPerReq": 1.0,
+		  "revenuePerReq": 2.0 }
+	]
+}
