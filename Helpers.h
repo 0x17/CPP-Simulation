@@ -26,6 +26,9 @@ namespace Helpers {
 		}
 		return v;
 	}
+
+	void spit(const std::string &s, const std::string &filename);
+	void spitAppend(const std::string &s, const std::string &filename);
 };
 
 

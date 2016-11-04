@@ -19,7 +19,7 @@ Result GurobiOptimizer::solve(std::vector<std::vector<int>>& scenarios) {
 
 	GRBEnv env;
 	env.set(GRB_DoubleParam_MIPGap, 0.0);
-	env.set(GRB_DoubleParam_TimeLimit, 5);
+	env.set(GRB_DoubleParam_TimeLimit, 30);
 
 	GRBModel model(env);
 

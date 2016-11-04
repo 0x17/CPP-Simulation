@@ -48,3 +48,19 @@ double Helpers::pickNormalDescriptive(double mean, double stddev, int scenarioIx
 double Helpers::vecAverage(const vector<double>& nums) {
 	return accumulate(nums.begin(), nums.end(), 0.0) / (double)nums.size();
 }
+
+void Helpers::spit(const std::string &s, const std::string &filename) {
+	std::ofstream f(filename);
+	if(f.is_open()) {
+		f << s;
+		f.close();
+	}
+}
+
+void Helpers::spitAppend(const string &s, const string &filename) {
+	ofstream f(filename, ios_base::app);
+	if (f.is_open()) {
+		f << s;
+		f.close();
+	}
+}

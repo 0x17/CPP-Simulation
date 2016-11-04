@@ -40,7 +40,7 @@ AbstractSimulation::AbstractSimulation(const string &dataFilename) {
 
 vector<double> AbstractSimulation::runSimulation(const vector<int> &bookingLimits, ScenarioList &scenarios) {
     vector<double> revenues(scenarios.size());
-    for(int i=0; i<revenues.size(); i++) {
+    for(int i=0; i<scenarios.size(); i++) {
         revenues[i] = objective(scenarios[i], bookingLimits);
     }
     return revenues;
