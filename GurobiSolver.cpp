@@ -24,16 +24,16 @@ Result GurobiOptimizer::solve(std::vector<std::vector<int>>& scenarios) {
 	GRBModel model(env);
 
 	vector<GRBVar> bcj = Helpers::constructVector<GRBVar>(J, [&](int j) { return model.addVar(j == 0 ? C : 0, C, 0.0, GRB_INTEGER, "bcj" + to_string(j)); });
-	Matrix<GRBVar> njs(J, S, [&](int j, int s) { return model.addVar(0, floor(C / cj(j)), 0.0, GRB_CONTINUOUS, "njs" + to_string(j) + "," + to_string(s)); });
+	Matrix<GRBVar> njs(J, S, [&](int j, int s) { return model.addVar(0, floor((double)C / (double)cj(j)), 0.0, GRB_CONTINUOUS, "njs" + to_string(j) + "," + to_string(s)); });
 	Matrix<GRBVar> rcapjs(J, S, [&](int j, int s) { return model.addVar(0, C, 0.0, GRB_CONTINUOUS, "rcapjs" + to_string(j) + "," + to_string(s)); });
-	Matrix<GRBVar> kjs(J, S, [&](int j, int s) { return model.addVar(0, floor(C / cj(j)), 0.0, GRB_INTEGER, "kjs" + to_string(j) + "," + to_string(s)); });
+	Matrix<GRBVar> kjs(J, S, [&](int j, int s) { return model.addVar(0, floor((double)C / (double)cj(j)), 0.0, GRB_INTEGER, "kjs" + to_string(j) + "," + to_string(s)); });
 
-	GRBLinExpr revSum;
+	GRBLinExpr revSum = 0.0;
 	for (int j = 0; j < J; j++)
 		for (int s = 0; s < S; s++)
-			revSum += njs(j, s) * rj(j);
+			revSum += njs(j, s) * (double)rj(j);
 
-	model.setObjective(1 / S * revSum);
+	model.setObjective(1.0 / (double)S * revSum, GRB_MAXIMIZE);
 
 	for (int j = 0; j < J; j++) {
 		if (j + 1 < J)
@@ -43,9 +43,9 @@ Result GurobiOptimizer::solve(std::vector<std::vector<int>>& scenarios) {
 			model.addConstr(kjs(j, s) * cj(j) <= rcapjs(j, s));
 			model.addConstr(kjs(j, s) * cj(j) >= rcapjs(j, s) - cj(j) + 1);
 
-			GRBLinExpr previouslyUtilizedCap;
+			GRBLinExpr previouslyUtilizedCap = 0.0;
 			for (int i = j + 1; i < J; i++)
-				previouslyUtilizedCap += njs(i, s) * cj(j);
+				previouslyUtilizedCap += njs(i, s) * cj(i);
 			model.addConstr(rcapjs(j, s) == (bcj[j] - previouslyUtilizedCap));
 
 			GRBVar kjsarr[] = { kjs(j,s) };

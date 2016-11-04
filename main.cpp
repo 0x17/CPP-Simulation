@@ -7,7 +7,7 @@
 
 using namespace std;
 
-const int ntries = 10000;
+const int ntries = 50;
 
 void runOptimizers() {
 	cout << "Number of scenarios: " << ntries << endl << endl;

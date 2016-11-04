@@ -74,7 +74,7 @@ AbstractSimulation::Scenario AbstractSimulation::pickDemands() {
     Scenario demands((unsigned long)numClasses);
     int ctr = 0;
     for(Customer &c : customers) {
-        demands[ctr++] = (int)round(Helpers::pickNormal(c.expD, c.devD));
+		demands[ctr++] = max(0, (int)round(Helpers::pickNormal(c.expD, c.devD)));
     }
     return demands;
 }
