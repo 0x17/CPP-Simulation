@@ -11,18 +11,16 @@
 
 using namespace std;
 
-std::ostream &operator<<(std::ostream &os, Result const &res) {
+string Result::toString() const {
 	bool first = true;
-	os << std::string("profit=") << res.profit << std::string(",");
-	os << std::string("bookingLimits=(");
-	for (double bl : res.bookingLimits) {
-		if (!first)
-			os << std::string(", ");
-		os << bl;
+    string out = "profit=" + to_string(profit) + ",bookingLimits=(";
+	for (double bl : this->bookingLimits) {
+		if (!first) out += ", ";
+		out += to_string(bl);
 		first = false;
 	}
-	os << std::string(")");
-	return os;
+	out += ")";
+    return out;
 }
 
 AbstractSimulation::AbstractSimulation(const string &dataFilename) {

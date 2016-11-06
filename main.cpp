@@ -26,7 +26,7 @@ void runOptimizers() {
 	for(auto optimizer : optimizers) {
 		auto res = optimizer->solve(scenarios);
 		cout << endl << optimizer->getName() << " results:" << endl;
-		cout << res << endl << endl;
+		cout << res.toString() << endl << endl;
 	}
 }
 
@@ -38,7 +38,7 @@ void effectOfDescriptiveSampling() {
 
 	Helpers::spit("ntries;profitRandom;profitDescriptive\n", "profitfornscen.txt");
 
-	for(int ntries = 1; ntries <= 50; ntries += 1) {
+	for(int ntries = 1; ntries <= 20; ntries += 1) {
 		auto scenariosRand = sim.generateScenarios(ntries, AbstractSimulation::SamplingType::Random);
 		auto resRand = evl.solve(scenariosRand);
 		auto profitRandomSampling = Helpers::vecAverage(sim.runSimulation(resRand.bookingLimits, refScenarios));

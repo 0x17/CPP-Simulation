@@ -53,11 +53,13 @@ struct Result {
 
 	Result() : bookingLimits(0), profit(0) {}
 	Result(int nclasses) : bookingLimits(nclasses), profit(0) {}
+
+	std::string toString() const;
 };
 
 using ResultList = std::vector<Result>;
 
-std::ostream &operator<<(std::ostream &os, Result const &res);
+
 
 class BookingLimitOptimizer {
 public:

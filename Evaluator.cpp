@@ -18,10 +18,10 @@ Result AbstractEvaluator::computeOpt(const ResultList& results, bool printOpts) 
 	}
 
 	if (printOpts) {
-		cout << "Primary opt: " << optResult << endl;
+		cout << "Primary opt: " << optResult.toString() << endl;
 		for (Result res : results) {
 			if (res.profit == optResult.profit && res.bookingLimits != optResult.bookingLimits) {
-				cout << "Alternative opt:" << res << endl;
+				cout << "Alternative opt:" << res.toString() << endl;
 			}
 		}
 	}
