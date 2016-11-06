@@ -13,15 +13,15 @@ using namespace std;
 
 std::ostream &operator<<(std::ostream &os, Result const &res) {
 	bool first = true;
-	os << "profit=" << res.profit << ",";
-	os << "bookingLimits=(";
+	os << std::string("profit=") << res.profit << std::string(",");
+	os << std::string("bookingLimits=(");
 	for (double bl : res.bookingLimits) {
 		if (!first)
-			os << ", ";
+			os << std::string(", ");
 		os << bl;
 		first = false;
 	}
-	os << ")";
+	os << std::string(")");
 	return os;
 }
 

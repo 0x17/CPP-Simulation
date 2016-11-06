@@ -1,4 +1,5 @@
 #include <gurobi_c++.h>
+#include <cmath>
 
 #include "GurobiSolver.h"
 #include "Simulation.h"
@@ -24,9 +25,9 @@ Result GurobiOptimizer::solve(std::vector<std::vector<int>>& scenarios) {
 	GRBModel model(env);
 
 	vector<GRBVar> bcj = Helpers::constructVector<GRBVar>(J, [&](int j) { return model.addVar(j == 0 ? C : 0, C, 0.0, GRB_INTEGER, "bcj" + to_string(j)); });
-	Matrix<GRBVar> njs(J, S, [&](int j, int s) { return model.addVar(0, floor((double)C / (double)cj(j)), 0.0, GRB_CONTINUOUS, "njs" + to_string(j) + "," + to_string(s)); });
+	Matrix<GRBVar> njs(J, S, [&](int j, int s) { return model.addVar(0, std::floor((double)C / (double)cj(j)), 0.0, GRB_CONTINUOUS, "njs" + to_string(j) + "," + to_string(s)); });
 	Matrix<GRBVar> rcapjs(J, S, [&](int j, int s) { return model.addVar(0, C, 0.0, GRB_CONTINUOUS, "rcapjs" + to_string(j) + "," + to_string(s)); });
-	Matrix<GRBVar> kjs(J, S, [&](int j, int s) { return model.addVar(0, floor((double)C / (double)cj(j)), 0.0, GRB_INTEGER, "kjs" + to_string(j) + "," + to_string(s)); });
+	Matrix<GRBVar> kjs(J, S, [&](int j, int s) { return model.addVar(0, std::floor((double)C / (double)cj(j)), 0.0, GRB_INTEGER, "kjs" + to_string(j) + "," + to_string(s)); });
 
 	GRBLinExpr revSum = 0.0;
 	for (int j = 0; j < J; j++)
