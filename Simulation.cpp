@@ -44,6 +44,33 @@ vector<double> AbstractSimulation::runSimulation(const vector<int> &bookingLimit
     return revenues;
 }
 
+std::vector<double> AbstractSimulation::statisticalMeansOfScenarios(ScenarioList& scenarios) {
+	vector<double> means = Helpers::constructVector<double>(scenarios[0].size(), [&](int ix) { return 0.0; });
+	for(auto scenario : scenarios) {
+		for(int i=0; i<means.size(); i++) {
+			means[i] += scenario[i];
+		}
+	}
+	for(int i=0; i<means.size(); i++) {
+		means[i] /= scenarios.size();
+	}
+	return means;
+}
+
+std::vector<double> AbstractSimulation::statisticalStandardDeviationsOfScenarios(ScenarioList& scenarios) {
+	auto means = statisticalMeansOfScenarios(scenarios);
+	vector<double> stddevs = Helpers::constructVector<double>(scenarios[0].size(), [&](int ix) { return 0.0; });
+	for (auto scenario : scenarios) {
+		for (int i = 0; i<stddevs.size(); i++) {
+			stddevs[i] += pow(scenario[i] - means[i], 2);
+		}
+	}
+	for (int i = 0; i<stddevs.size(); i++) {
+		stddevs[i] = sqrt(stddevs[i] / scenarios.size());
+	}
+	return stddevs;
+}
+
 double TwoClassSimulation::objective(const vector<int>& demands, const vector<int>& bookingLimits) {
 	int n2 = (int)floor(min(bookingLimits[1], demands[1] * customers[1].consumptionPerReq) / customers[1].consumptionPerReq);
 	int n1 = (int)floor(min(demands[0] * customers[0].consumptionPerReq, C - n2 * customers[1].consumptionPerReq));
@@ -78,8 +105,8 @@ AbstractSimulation::Scenario AbstractSimulation::pickDemands(int scenarioIx, int
     return demands;
 }
 
-AbstractSimulation::ScenarioList AbstractSimulation::generateScenarios(int ntries, SamplingType stype) {
-	Helpers::resetSeed(42);
+AbstractSimulation::ScenarioList AbstractSimulation::generateScenarios(int ntries, int seed, SamplingType stype) {
+	Helpers::resetSeed(seed);
     ScenarioList scenarios((unsigned long) ntries);
     for(int i=0; i<ntries; i++) {
         scenarios[i] = pickDemands(i, ntries, stype);

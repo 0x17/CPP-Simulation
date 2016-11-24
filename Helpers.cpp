@@ -4,7 +4,7 @@
 
 #include "Helpers.h"
 
-#include <boost/math/special_functions/erf.hpp>
+#include <boost/math/distributions/normal.hpp>
 #include <fstream>
 #include <random>
 #include <map>
@@ -17,7 +17,7 @@ string Helpers::slurp(const string &filename) {
     return content;
 }
 
-static mt19937 *gen = nullptr;
+static mt19937 *gen = new mt19937(42);
 
 void Helpers::resetSeed(int seed) {
 	if(gen) {
@@ -27,18 +27,13 @@ void Helpers::resetSeed(int seed) {
 }
 
 double Helpers::pickNormal(double mean, double stddev) {
-    static map<pair<double, double>, normal_distribution<double>> distCache;
-    auto params = make_pair(mean, stddev);
-    auto it = distCache.find(params);
-    if(it == distCache.end()) {
-        normal_distribution<double> d(mean, stddev);
-        distCache[params] = d;
-    }
-    return distCache[params](*gen);
+	normal_distribution<double> d(mean, stddev);
+    return d(*gen);
 }
 
 double Helpers::invNormal(double x, double mean, double stddev) {
-	return mean + sqrt(2) * stddev * boost::math::erfc_inv(2.0 * x);
+	boost::math::normal d(mean, stddev);
+	return quantile(d, x);
 }
 
 double Helpers::pickNormalDescriptive(double mean, double stddev, int scenarioIx, int nscenarios) {

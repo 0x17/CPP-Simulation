@@ -31,7 +31,7 @@ public:
 	};
 
     Scenario pickDemands(int scenarioIx, int numScenarios, SamplingType stype = SamplingType::Descriptive);
-    ScenarioList generateScenarios(int ntries, SamplingType stype = SamplingType::Descriptive);
+    ScenarioList generateScenarios(int ntries, int seed, SamplingType stype = SamplingType::Descriptive);
     std::vector<double> runSimulation(const std::vector<int> &bookingLimits, ScenarioList &scenarios);
 
     virtual double objective(const std::vector<int> &demands, const std::vector<int> &bookingLimits) = 0;
@@ -40,6 +40,9 @@ public:
 	int getNumClasses() const { return (int)customers.size();  }
 
 	Customer &getCustomer(int ix) { return customers[ix];  }
+
+	static std::vector<double> statisticalMeansOfScenarios(ScenarioList &scenarios);
+	static std::vector<double> statisticalStandardDeviationsOfScenarios(ScenarioList &scenarios);
 
 protected:
 	int C;

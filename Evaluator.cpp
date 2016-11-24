@@ -12,7 +12,7 @@ Result AbstractEvaluator::computeOpt(const ResultList& results, bool printOpts) 
 	optResult.profit = std::numeric_limits<float>::min();
 
 	for(Result res : results) {
-		if(res.profit > optResult.profit) {
+		if(res.profit >= optResult.profit) {
 			optResult = res;
 		}
 	}
@@ -33,8 +33,8 @@ Result AbstractEvaluator::solve(AbstractSimulation::ScenarioList& scenarios) {
 	Stopwatch sw;
 	sw.start();
 	auto res = collectResults(scenarios);
-	auto opt = computeOpt(res, true);
-	cout << "Time passed = " << sw.lookAndReset() << endl;
+	auto opt = computeOpt(res, false /*true*/);
+	//cout << "Time passed = " << sw.lookAndReset() << endl;
 	return opt;
 }
 
