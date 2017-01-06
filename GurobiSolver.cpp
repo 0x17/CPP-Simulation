@@ -29,6 +29,12 @@ Result GurobiOptimizer::solve(std::vector<std::vector<int>>& scenarios) {
 	Matrix<GRBVar> rcapjs(J, S, [&](int j, int s) { return model.addVar(0, C, 0.0, GRB_CONTINUOUS, "rcapjs" + to_string(j) + "," + to_string(s)); });
 	Matrix<GRBVar> kjs(J, S, [&](int j, int s) { return model.addVar(0, std::floor((double)C / (double)cj(j)), 0.0, GRB_INTEGER, "kjs" + to_string(j) + "," + to_string(s)); });
 
+	if(heuristicBookingLimits) {
+		for(int j=0; j<J; j++) {
+			bcj[j].set(GRB_DoubleAttr_Start, (*heuristicBookingLimits)[j]);
+		}
+	}
+
 	GRBLinExpr revSum = 0.0;
 	for (int j = 0; j < J; j++)
 		for (int s = 0; s < S; s++)
