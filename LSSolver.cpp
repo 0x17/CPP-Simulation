@@ -15,16 +15,10 @@ lsdouble RevenueComputationNativeFunction::call(const LSNativeContext& context) 
 		bookingLimits[i] = (int)context.getIntValue(i);
 	}
 
-	vector<double> profits(scenarios.size());
-	for(int i=0; i<scenarios.size(); i++) {
-		profits[i] = sim.objective(scenarios[i], bookingLimits);
-	}
-
-	return Helpers::vecAverage(profits);
+	return sim.averageRevenueOfSimulation(bookingLimits, scenarios);
 }
 
 LSOptimizer::LSOptimizer(AbstractSimulation& _sim): BookingLimitOptimizer("LocalSolverNative", _sim), rfunc(_sim), bookingLimits(sim.getNumClasses()) {
-	const bool useHeuristicStart = true;
 	LSModel model = ls.getModel();
 
 	obj = model.call(model.createNativeFunction(&rfunc));
@@ -34,11 +28,9 @@ LSOptimizer::LSOptimizer(AbstractSimulation& _sim): BookingLimitOptimizer("Local
 		obj.addOperand(bookingLimits[i]);
 	}
 
-	if(useHeuristicStart) {
-		// TODO: move policy to interface also
-		vector<int> heuristicBookingLimits = ((MultiClassSimulation&)sim).heuristicPolicy();
+	if(heuristicBookingLimits) {
 		for(int j=0; j<sim.getNumClasses(); j++) {
-			bookingLimits[j].setIntValue(heuristicBookingLimits[j]);
+			bookingLimits[j].setIntValue((*heuristicBookingLimits)[j]);
 		}
 	}
 

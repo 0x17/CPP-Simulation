@@ -44,6 +44,10 @@ vector<double> AbstractSimulation::runSimulation(const vector<int> &bookingLimit
     return revenues;
 }
 
+double AbstractSimulation::averageRevenueOfSimulation(const std::vector<int>& bookingLimits, ScenarioList& scenarios) {
+	return Helpers::vecAverage(runSimulation(bookingLimits, scenarios));
+}
+
 std::vector<double> AbstractSimulation::statisticalMeansOfScenarios(ScenarioList& scenarios) {
 	vector<double> means = Helpers::constructVector<double>(scenarios[0].size(), [&](int ix) { return 0.0; });
 	for(auto scenario : scenarios) {
@@ -77,9 +81,17 @@ double TwoClassSimulation::objective(const vector<int>& demands, const vector<in
 	return n1 * customers[0].revenuePerReq + n2 * customers[1].revenuePerReq;
 }
 
-int TwoClassSimulation::optimalPolicy() const {
+OptionalPolicy TwoClassSimulation::heuristicPolicy() const {
+	vector<int> bookingLimits(2);
+	bookingLimits[0] = (int)floor(min(customers[0].expD * customers[0].consumptionPerReq, (double)C) / customers[0].consumptionPerReq);
+	bookingLimits[1] = (int)floor(min(customers[1].expD * customers[1].consumptionPerReq, (double)(C-bookingLimits[0]*customers[0].consumptionPerReq)) / customers[1].consumptionPerReq);
+	return bookingLimits;
+}
+
+OptionalPolicy TwoClassSimulation::optimalPolicy() const {
 	double x = (customers[0].revenuePerReq - customers[1].revenuePerReq) / customers[0].revenuePerReq;
-	return (int)floor(customers[0].consumptionPerReq * Helpers::invNormal(x, customers[0].expD, customers[0].devD));
+	vector<int> bookingLimits = { C, (int)floor(customers[0].consumptionPerReq * Helpers::invNormal(x, customers[0].expD, customers[0].devD)) };
+	return bookingLimits;
 }
 
 double MultiClassSimulation::objective(const vector<int>& demands, const vector<int>& bookingLimits) {
@@ -95,7 +107,7 @@ double MultiClassSimulation::objective(const vector<int>& demands, const vector<
 	return profit;
 }
 
-vector<int> MultiClassSimulation::heuristicPolicy() const {
+OptionalPolicy MultiClassSimulation::heuristicPolicy() const {
 	vector<int> bookingLimits(numClasses);
 	int residualCapacity = C;
 	for(int j=0; j<numClasses; j++) {
@@ -103,6 +115,10 @@ vector<int> MultiClassSimulation::heuristicPolicy() const {
 		residualCapacity -= bookingLimits[j] * customers[j].consumptionPerReq;
 	}
 	return bookingLimits;
+}
+
+OptionalPolicy MultiClassSimulation::optimalPolicy() const {
+	return OptionalPolicy();
 }
 
 AbstractSimulation::Scenario AbstractSimulation::pickDemands(int scenarioIx, int numScenarios, SamplingType stype) {

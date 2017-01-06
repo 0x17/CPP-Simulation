@@ -6,6 +6,7 @@
 #define CPP_SIMULATION_SIMULATION_H
 
 #include <list>
+#include <boost/optional.hpp>
 #include "json11.hpp"
 
 struct Customer {
@@ -16,6 +17,8 @@ struct Customer {
 
     Customer(const json11::Json &obj);
 };
+
+using OptionalPolicy = boost::optional<std::vector<int>>;
 
 class AbstractSimulation {
 public:
@@ -33,8 +36,12 @@ public:
     Scenario pickDemands(int scenarioIx, int numScenarios, SamplingType stype = SamplingType::Descriptive);
     ScenarioList generateScenarios(int ntries, int seed, SamplingType stype = SamplingType::Descriptive);
     std::vector<double> runSimulation(const std::vector<int> &bookingLimits, ScenarioList &scenarios);
+	double averageRevenueOfSimulation(const std::vector<int>& bookingLimits, ScenarioList& scenarios);
 
-    virtual double objective(const std::vector<int> &demands, const std::vector<int> &bookingLimits) = 0;
+	virtual double objective(const std::vector<int> &demands, const std::vector<int> &bookingLimits) = 0;
+
+	virtual OptionalPolicy optimalPolicy() const = 0;
+	virtual OptionalPolicy heuristicPolicy() const = 0;
 
 	int getC() const { return C; }
 	int getNumClasses() const { return (int)customers.size();  }
@@ -56,23 +63,21 @@ struct Result {
 
 	Result() : bookingLimits(0), profit(0) {}
 	Result(int nclasses) : bookingLimits(nclasses), profit(0) {}
-
-
-	Result(const std::vector<int>& booking_limits, double profit)
-		: bookingLimits(booking_limits),
-		  profit(profit) {
-	}
+	Result(const std::vector<int>& booking_limits, double profit) : bookingLimits(booking_limits), profit(profit) {}
 
 	std::string toString() const;
 };
 
 using ResultList = std::vector<Result>;
 
-
-
 class BookingLimitOptimizer {
+	const bool useHeuristicStart = true;
 public:
-	BookingLimitOptimizer(std::string _name, AbstractSimulation &_sim) : sim(_sim), name(_name) {}
+	BookingLimitOptimizer(std::string _name, AbstractSimulation &_sim) : sim(_sim), name(_name) {
+		if (useHeuristicStart) {
+			heuristicBookingLimits = sim.heuristicPolicy();
+		}
+	}
 	virtual ~BookingLimitOptimizer() {}
 	virtual Result solve(std::vector<std::vector<int>>& scenarios) = 0;
 
@@ -80,6 +85,7 @@ public:
 
 protected:
 	AbstractSimulation &sim;
+	OptionalPolicy heuristicBookingLimits;
 private:
 	std::string name;
 };
@@ -88,14 +94,16 @@ class TwoClassSimulation : public AbstractSimulation {
 public:
     TwoClassSimulation(const std::string &dataFilename) : AbstractSimulation(dataFilename) {}
 	virtual double objective(const std::vector<int>& demands, const std::vector<int>& bookingLimits) override;
-	int optimalPolicy() const;
+	OptionalPolicy heuristicPolicy() const override;
+	OptionalPolicy optimalPolicy() const override;
 };
 
 class MultiClassSimulation : public AbstractSimulation {
 public:
     MultiClassSimulation() : AbstractSimulation("multi_data.json") {}
 	virtual double objective(const std::vector<int>& demands, const std::vector<int>& bookingLimits) override;
-	std::vector<int> heuristicPolicy() const;
+	OptionalPolicy heuristicPolicy() const override;
+	OptionalPolicy optimalPolicy() const override;
 };
 
 
