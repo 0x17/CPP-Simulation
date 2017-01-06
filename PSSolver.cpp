@@ -1,11 +1,12 @@
 #include "PSSolver.h"
 #include "Matrix.h"
 #include "Helpers.h"
+#include <boost/algorithm/clamp.hpp>
 #include <functional>
 
 class Swarm {
 public:
-	Swarm(int _swarmSize, int _numClasses, int _C, std::function<double(std::vector<int>)> _objective);
+	Swarm(int _swarmSize, int _numClasses, int _C, std::function<double(std::vector<int>)> _objective);	
 	void update();
 	Result getBestResult() const;
 
@@ -13,6 +14,8 @@ private:
 	void initStartingPositions();
 	void initLocalGlobalBests();
 	void initStartingVelocities();
+
+	void restrictParticleToBounds(int particleIndex);
 
 	int swarmSize, numClasses, C;
 	Matrix<int> particles, personalBests, velocities;
@@ -53,6 +56,13 @@ Swarm::Swarm(int _swarmSize, int _numClasses, int _C, std::function<double(std::
 	initStartingVelocities();
 }
 
+void Swarm::restrictParticleToBounds(int particleIndex) {
+	boost::algorithm::clamp(particles(particleIndex, 0), 0, C);
+	for(int j=1; j<numClasses; j++) {
+		boost::algorithm::clamp(particles(particleIndex, j), 0, particles(particleIndex, j - 1));
+	}
+}
+
 void Swarm::update() {
 	const float omega = 0.2, phi_p = 0.2, phi_g = 0.2;
 
@@ -64,6 +74,8 @@ void Swarm::update() {
 			velocities(i, j) = omega * velocities(i, j) + phi_p * r_p * (personalBests(i, j) - particles(i, j)) + phi_g * r_g * (globalBest[j] - particles(i, j));
 			particles(i, j) = particles(i, j) + velocities(i, j);
 		}
+
+		restrictParticleToBounds(i);
 
 		if(objective(particles.row(i)) > objective(personalBests.row(i))) {
 			for(int j=0; j<numClasses; j++) {
