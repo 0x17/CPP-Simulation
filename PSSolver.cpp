@@ -18,7 +18,8 @@ private:
 	void restrictParticleToBounds(int particleIndex);
 
 	int swarmSize, numClasses, C;
-	Matrix<int> particles, personalBests, velocities;
+	Matrix<int> particles, personalBests;
+	Matrix<double> velocities;
 	double globalBestObjective;
 	std::vector<int> globalBest;
 	std::function<double(std::vector<int>)> objective;
@@ -50,6 +51,8 @@ Swarm::Swarm(int _swarmSize, int _numClasses, int _C, std::function<double(std::
 	particles(swarmSize, _numClasses),
 	personalBests(swarmSize, _numClasses),
 	velocities(swarmSize, _numClasses),
+	globalBestObjective(std::numeric_limits<int>::min()),
+	globalBest(_numClasses),
 	objective(_objective),
 	seedSolution(_seedSolution) {
 
@@ -66,15 +69,15 @@ void Swarm::restrictParticleToBounds(int particleIndex) {
 }
 
 void Swarm::update() {
-	const float omega = 0.2, phi_p = 0.2, phi_g = 0.2;
+	const double omega = 0.2, phi_p = 0.2, phi_g = 0.2;
 
 	for (int i = 0; i < swarmSize; i++) {
-		int r_p = Helpers::randUnitFloat(),
-			r_g = Helpers::randUnitFloat();
+		double	r_p = Helpers::randUnitDouble(),
+				r_g = Helpers::randUnitDouble();
 
 		for(int j=0; j<numClasses; j++) {			
 			velocities(i, j) = omega * velocities(i, j) + phi_p * r_p * (personalBests(i, j) - particles(i, j)) + phi_g * r_g * (globalBest[j] - particles(i, j));
-			particles(i, j) = particles(i, j) + velocities(i, j);
+			particles(i, j) = (int)floor(particles(i, j) + velocities(i, j));
 		}
 
 		restrictParticleToBounds(i);
@@ -112,8 +115,6 @@ void Swarm::initStartingPositions() {
 
 void Swarm::initLocalGlobalBests() {
 	personalBests = particles;
-	std::vector<int> globalBest(numClasses);
-	globalBestObjective = std::numeric_limits<int>::min();
 	for (int i = 0; i < swarmSize; i++) {
 		double obj = objective(personalBests.row(i));
 		if (obj > globalBestObjective) {

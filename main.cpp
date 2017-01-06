@@ -27,10 +27,15 @@ void runOptimizers() {
 
 	auto scenarios = sim.generateScenarios(ntries, 42, AbstractSimulation::SamplingType::Descriptive);
 
+	list<pair<string, Result>> results;
+
 	for(auto optimizer : optimizers) {
-		auto res = optimizer->solve(scenarios);
-		cout << endl << optimizer->getName() << " results:" << endl;
-		cout << res.toString() << endl << endl;
+		results.push_back(make_pair(optimizer->getName(), optimizer->solve(scenarios)));
+	}
+
+	for(auto res : results) {
+		cout << endl << res.first << " results:" << endl;
+		cout << res.second.toString() << endl << endl;
 	}
 }
 
@@ -88,6 +93,6 @@ void effectOfDescriptiveSampling() {
 int main() {
 	runOptimizers();
 	//effectOfDescriptiveSampling();
-	//getchar();
+	getchar();
     return 0;
 }

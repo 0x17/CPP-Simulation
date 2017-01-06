@@ -28,12 +28,6 @@ LSOptimizer::LSOptimizer(AbstractSimulation& _sim): BookingLimitOptimizer("Local
 		obj.addOperand(bookingLimits[i]);
 	}
 
-	if(heuristicBookingLimits) {
-		for(int j=0; j<sim.getNumClasses(); j++) {
-			bookingLimits[j].setIntValue((*heuristicBookingLimits)[j]);
-		}
-	}
-
 	model.constraint(bookingLimits[0] == sim.getC());
 	for (int i = 0; i<sim.getNumClasses() - 1; i++) {
 		model.constraint(bookingLimits[i] >= bookingLimits[i + 1]);
@@ -41,6 +35,12 @@ LSOptimizer::LSOptimizer(AbstractSimulation& _sim): BookingLimitOptimizer("Local
 
 	model.addObjective(obj, OD_Maximize);
 	model.close();
+
+	if (heuristicBookingLimits) {
+		for (int j = 0; j<sim.getNumClasses(); j++) {
+			bookingLimits[j].setIntValue((*heuristicBookingLimits)[j]);
+		}
+	}
 }
 
 Result LSOptimizer::solve(std::vector<std::vector<int>>& scenarios) {

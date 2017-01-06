@@ -37,6 +37,10 @@ namespace Helpers {
 	inline float randUnitFloat() {
 		return static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
 	}
+
+	inline double randUnitDouble() {
+		return static_cast<double>(rand()) / static_cast<double>(RAND_MAX);
+	}
 };
 
 
