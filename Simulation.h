@@ -57,6 +57,12 @@ struct Result {
 	Result() : bookingLimits(0), profit(0) {}
 	Result(int nclasses) : bookingLimits(nclasses), profit(0) {}
 
+
+	Result(const std::vector<int>& booking_limits, double profit)
+		: bookingLimits(booking_limits),
+		  profit(profit) {
+	}
+
 	std::string toString() const;
 };
 
@@ -82,13 +88,14 @@ class TwoClassSimulation : public AbstractSimulation {
 public:
     TwoClassSimulation(const std::string &dataFilename) : AbstractSimulation(dataFilename) {}
 	virtual double objective(const std::vector<int>& demands, const std::vector<int>& bookingLimits) override;
-	int optimalPolicy();
+	int optimalPolicy() const;
 };
 
 class MultiClassSimulation : public AbstractSimulation {
 public:
     MultiClassSimulation() : AbstractSimulation("multi_data.json") {}
 	virtual double objective(const std::vector<int>& demands, const std::vector<int>& bookingLimits) override;
+	std::vector<int> heuristicPolicy() const;
 };
 
 

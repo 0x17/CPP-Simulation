@@ -160,6 +160,7 @@
     <ClInclude Include="json11.hpp" />
     <ClInclude Include="LSSolver.h" />
     <ClInclude Include="Matrix.h" />
+    <ClInclude Include="PSSolver.h" />
     <ClInclude Include="Simulation.h" />
     <ClInclude Include="Stopwatch.h" />
   </ItemGroup>
@@ -170,6 +171,7 @@
     <ClCompile Include="json11.cpp" />
     <ClCompile Include="LSSolver.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="PSSolver.cpp" />
     <ClCompile Include="Simulation.cpp" />
     <ClCompile Include="Stopwatch.cpp" />
   </ItemGroup>

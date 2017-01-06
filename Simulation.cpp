@@ -77,7 +77,7 @@ double TwoClassSimulation::objective(const vector<int>& demands, const vector<in
 	return n1 * customers[0].revenuePerReq + n2 * customers[1].revenuePerReq;
 }
 
-int TwoClassSimulation::optimalPolicy() {
+int TwoClassSimulation::optimalPolicy() const {
 	double x = (customers[0].revenuePerReq - customers[1].revenuePerReq) / customers[0].revenuePerReq;
 	return (int)floor(customers[0].consumptionPerReq * Helpers::invNormal(x, customers[0].expD, customers[0].devD));
 }
@@ -93,6 +93,16 @@ double MultiClassSimulation::objective(const vector<int>& demands, const vector<
 	}
 
 	return profit;
+}
+
+vector<int> MultiClassSimulation::heuristicPolicy() const {
+	vector<int> bookingLimits(numClasses);
+	int residualCapacity = C;
+	for(int j=0; j<numClasses; j++) {
+		bookingLimits[j] = (int)floor( min(customers[j].expD * customers[j].consumptionPerReq, (double)residualCapacity) / customers[j].consumptionPerReq );
+		residualCapacity -= bookingLimits[j] * customers[j].consumptionPerReq;
+	}
+	return bookingLimits;
 }
 
 AbstractSimulation::Scenario AbstractSimulation::pickDemands(int scenarioIx, int numScenarios, SamplingType stype) {

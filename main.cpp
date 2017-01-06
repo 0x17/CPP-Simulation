@@ -7,6 +7,7 @@
 #include "Helpers.h"
 
 #include <boost/algorithm/string.hpp>
+#include "PSSolver.h"
 
 using namespace std;
 
@@ -20,8 +21,9 @@ void runOptimizers() {
 	Evaluator3D evl(sim);
 	LSOptimizer ls(sim);
 	GurobiOptimizer gurobi(sim);
+	PSSolver ps(sim);
 
-	vector<BookingLimitOptimizer *> optimizers = {  &evl, &ls, &gurobi };
+	vector<BookingLimitOptimizer *> optimizers = {  &evl, &ls, &gurobi, &ps };
 
 	auto scenarios = sim.generateScenarios(ntries, 42, AbstractSimulation::SamplingType::Descriptive);
 
@@ -84,8 +86,8 @@ void effectOfDescriptiveSampling() {
 }
 
 int main() {
-	//runOptimizers();
-	effectOfDescriptiveSampling();
+	runOptimizers();
+	//effectOfDescriptiveSampling();
 	//getchar();
     return 0;
 }

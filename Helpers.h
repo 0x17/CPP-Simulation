@@ -29,6 +29,14 @@ namespace Helpers {
 
 	void spit(const std::string &s, const std::string &filename);
 	void spitAppend(const std::string &s, const std::string &filename);
+
+	inline int randRangeIncl(int lb, int ub) {
+		return lb + rand() % (ub - lb + 1);
+	}
+
+	inline float randUnitFloat() {
+		return static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+	}
 };
 
 

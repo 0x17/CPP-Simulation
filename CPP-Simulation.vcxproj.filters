@@ -39,6 +39,9 @@
     <ClInclude Include="Matrix.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="PSSolver.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Helpers.cpp">
@@ -63,6 +66,9 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="GurobiSolver.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="PSSolver.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>
