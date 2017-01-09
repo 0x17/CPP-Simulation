@@ -3,6 +3,7 @@
 #include "Helpers.h"
 #include <boost/algorithm/clamp.hpp>
 #include <functional>
+#include "Stopwatch.h"
 
 class Swarm {
 public:
@@ -16,10 +17,12 @@ private:
 	void initStartingVelocities();
 
 	void restrictParticleToBounds(int particleIndex);
-
+	void updateParticlePositionAndVelocity(int particleIndex);
+	void updateLocalGlobalBests(int particleIndex);
 	int swarmSize, numClasses, C;
 	Matrix<int> particles, personalBests;
 	Matrix<double> velocities;
+	std::vector<double> personalBestObjectives;
 	double globalBestObjective;
 	std::vector<int> globalBest;
 	std::function<double(std::vector<int>)> objective;
@@ -29,16 +32,20 @@ private:
 PSSolver::PSSolver(AbstractSimulation &_sim) : BookingLimitOptimizer("ParticleSwarm", _sim) {}
 
 Result PSSolver::solve(std::vector<std::vector<int>>& scenarios) {
-	const int iterlimit = 10;
-	const int swarmSize = 100;
+	const int	iterlimit = -1,
+				timelimit = 3,
+				swarmSize = 100;
 
 	auto objective = [&](std::vector<int> bookingLimits) {
 		return Helpers::vecAverage(sim.runSimulation(bookingLimits, scenarios));
 	};
 
 	Swarm s(swarmSize, sim.getNumClasses(), sim.getC(), objective, heuristicBookingLimits);
-	
-	for (int i = 0; i < iterlimit; i++)
+	Stopwatch sw;
+
+	sw.start();
+	double tstart = sw.look();
+	for (int i = 0; (iterlimit != -1 && i < iterlimit) || (timelimit != -1 && sw.look() - tstart < (double)timelimit * 1000.0); i++)
 		s.update();
 
 	return s.getBestResult();
@@ -51,7 +58,8 @@ Swarm::Swarm(int _swarmSize, int _numClasses, int _C, std::function<double(std::
 	particles(swarmSize, _numClasses),
 	personalBests(swarmSize, _numClasses),
 	velocities(swarmSize, _numClasses),
-	globalBestObjective(std::numeric_limits<int>::min()),
+	personalBestObjectives(_swarmSize),
+	globalBestObjective(std::numeric_limits<double>::lowest()),
 	globalBest(_numClasses),
 	objective(_objective),
 	seedSolution(_seedSolution) {
@@ -62,35 +70,45 @@ Swarm::Swarm(int _swarmSize, int _numClasses, int _C, std::function<double(std::
 }
 
 void Swarm::restrictParticleToBounds(int particleIndex) {
-	boost::algorithm::clamp(particles(particleIndex, 0), 0, C);
+	particles(particleIndex, 0) = boost::algorithm::clamp(particles(particleIndex, 0), 0, C);
 	for(int j=1; j<numClasses; j++) {
-		boost::algorithm::clamp(particles(particleIndex, j), 0, particles(particleIndex, j - 1));
+		particles(particleIndex, j) = boost::algorithm::clamp(particles(particleIndex, j), 0, particles(particleIndex, j - 1));
+	}
+}
+
+void Swarm::updateParticlePositionAndVelocity(int particleIndex) {
+	const double omega = 0.5, phi_p = 0.2, phi_g = 0.4;
+
+	double	r_p = Helpers::randUnitDouble(),
+			r_g = Helpers::randUnitDouble();
+
+	for(int j=1; j<numClasses; j++) {			
+		velocities(particleIndex, j) = omega * velocities(particleIndex, j) + phi_p * r_p * (personalBests(particleIndex, j) - particles(particleIndex, j)) + phi_g * r_g * (globalBest[j] - particles(particleIndex, j));
+		particles(particleIndex, j) = (int)floor(particles(particleIndex, j) + velocities(particleIndex, j));
+	}
+}
+
+void Swarm::updateLocalGlobalBests(int particleIndex) {
+	double newObj = objective(particles.row(particleIndex));
+	if(newObj > personalBestObjectives[particleIndex]) {
+		// update personal best
+		personalBestObjectives[particleIndex] = newObj;
+		for(int j=1; j<numClasses; j++) {
+			personalBests(particleIndex, j) = particles(particleIndex, j);
+		}			
+		// update global best
+		if(newObj > globalBestObjective) {
+			globalBestObjective = newObj;
+			globalBest = particles.row(particleIndex);
+		}
 	}
 }
 
 void Swarm::update() {
-	const double omega = 0.2, phi_p = 0.2, phi_g = 0.2;
-
 	for (int i = 0; i < swarmSize; i++) {
-		double	r_p = Helpers::randUnitDouble(),
-				r_g = Helpers::randUnitDouble();
-
-		for(int j=0; j<numClasses; j++) {			
-			velocities(i, j) = omega * velocities(i, j) + phi_p * r_p * (personalBests(i, j) - particles(i, j)) + phi_g * r_g * (globalBest[j] - particles(i, j));
-			particles(i, j) = (int)floor(particles(i, j) + velocities(i, j));
-		}
-
+		updateParticlePositionAndVelocity(i);
 		restrictParticleToBounds(i);
-
-		if(objective(particles.row(i)) > objective(personalBests.row(i))) {
-			for(int j=0; j<numClasses; j++) {
-				particles(i, j) = personalBests(i, j);
-			}			
-			if(objective(particles.row(i)) > globalBestObjective) {
-				globalBestObjective = objective(particles.row(i));
-				globalBest = particles.row(i);
-			}
-		}
+		updateLocalGlobalBests(i);
 	}
 }
 
@@ -100,9 +118,9 @@ Result Swarm::getBestResult() const {
 
 void Swarm::initStartingPositions() {
 	for (int i = 0; i < swarmSize; i++) {
-		particles(i, 0) = Helpers::randRangeIncl(0, C);
+		particles(i, 0) = C;
 		for (int j = 1; j < numClasses; j++) {
-			particles(i, j) = Helpers::randRangeIncl(0, particles(i, j));
+			particles(i, j) = Helpers::randRangeIncl(0, particles(i, j-1));
 		}
 	}
 
@@ -117,6 +135,7 @@ void Swarm::initLocalGlobalBests() {
 	personalBests = particles;
 	for (int i = 0; i < swarmSize; i++) {
 		double obj = objective(personalBests.row(i));
+		personalBestObjectives[i] = obj;
 		if (obj > globalBestObjective) {
 			globalBest = personalBests.row(i);
 			globalBestObjective = obj;
