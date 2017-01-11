@@ -24,10 +24,10 @@ public:
 	ResultList collectResults(AbstractSimulation::ScenarioList &scenarios) override;
 };
 
-class Evaluator3D : public AbstractEvaluator {
+class EvaluatorMultiDimensional : public AbstractEvaluator {
 
 public:
-	explicit Evaluator3D(AbstractSimulation &_sim) : AbstractEvaluator(_sim) {}
+	explicit EvaluatorMultiDimensional(AbstractSimulation &_sim) : AbstractEvaluator(_sim) {}
 	ResultList collectResults(AbstractSimulation::ScenarioList &scenarios) override;
 };
 

@@ -109,12 +109,9 @@ double MultiClassSimulation::objective(const vector<int>& demands, const vector<
 
 OptionalPolicy MultiClassSimulation::heuristicPolicy() const {
 	vector<int> bookingLimits(numClasses);
-	bookingLimits[0] = C;
-	int residualCapacity = C - customers[0].expD * customers[0].consumptionPerReq;
-	
+	bookingLimits[0] = C;	
 	for(int j=1; j<numClasses; j++) {
-		bookingLimits[j] = (int)floor( min(customers[j].expD * customers[j].consumptionPerReq, (double)residualCapacity) / customers[j].consumptionPerReq );
-		residualCapacity -= bookingLimits[j] * customers[j].consumptionPerReq;
+		bookingLimits[j] = (int)floor( min(customers[j].expD, (double)bookingLimits[j-1]) );
 	}
 	return bookingLimits;
 }

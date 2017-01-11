@@ -16,14 +16,15 @@ void runOptimizers() {
 
 	cout << "Number of scenarios: " << ntries << endl << endl;
 
-	MultiClassSimulation sim;
+	MultiClassSimulation sim("multi_data_big.json");
 
-	Evaluator3D evl(sim);
+	EvaluatorMultiDimensional evl(sim);
 	LSOptimizer ls(sim);
 	GurobiOptimizer gurobi(sim);
 	PSSolver ps(sim);
 
 	vector<BookingLimitOptimizer *> optimizers = {  &evl, &ls, &gurobi, &ps };
+	//vector<BookingLimitOptimizer *> optimizers = { &ps };
 
 	auto scenarios = sim.generateScenarios(ntries, 42, AbstractSimulation::SamplingType::Descriptive);
 
@@ -45,7 +46,7 @@ inline string dot2comma(string s) {
 
 void effectOfDescriptiveSampling() {
 	MultiClassSimulation sim;
-	Evaluator3D evl(sim);
+	EvaluatorMultiDimensional evl(sim);
 
 	auto refScenarios = sim.generateScenarios(100000, 23, AbstractSimulation::SamplingType::Descriptive);
 

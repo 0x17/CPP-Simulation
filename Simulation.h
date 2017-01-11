@@ -100,7 +100,7 @@ public:
 
 class MultiClassSimulation : public AbstractSimulation {
 public:
-    MultiClassSimulation() : AbstractSimulation("multi_data.json") {}
+    MultiClassSimulation(const std::string &dataFilename = "multi_data.json") : AbstractSimulation(dataFilename) {}
 	virtual double objective(const std::vector<int>& demands, const std::vector<int>& bookingLimits) override;
 	OptionalPolicy heuristicPolicy() const override;
 	OptionalPolicy optimalPolicy() const override;

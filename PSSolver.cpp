@@ -1,9 +1,12 @@
+#include <boost/algorithm/clamp.hpp>
+#include <functional>
+
 #include "PSSolver.h"
 #include "Matrix.h"
 #include "Helpers.h"
-#include <boost/algorithm/clamp.hpp>
-#include <functional>
 #include "Stopwatch.h"
+
+const bool DISABLE_SWARM_TRACE = true;
 
 class Swarm {
 public:
@@ -11,14 +14,17 @@ public:
 	void update();
 	Result getBestResult() const;
 
+	void writeSwarmToFile(const std::string &filename) const;
+
 private:
-	void initStartingPositions();
+	void initStartingPositions();	
 	void initLocalGlobalBests();
 	void initStartingVelocities();
 
 	void restrictParticleToBounds(int particleIndex);
 	void updateParticlePositionAndVelocity(int particleIndex);
 	void updateLocalGlobalBests(int particleIndex);
+
 	int swarmSize, numClasses, C;
 	Matrix<int> particles, personalBests;
 	Matrix<double> velocities;
@@ -32,9 +38,9 @@ private:
 PSSolver::PSSolver(AbstractSimulation &_sim) : BookingLimitOptimizer("ParticleSwarm", _sim) {}
 
 Result PSSolver::solve(std::vector<std::vector<int>>& scenarios) {
-	const int	iterlimit = -1,
-				timelimit = 3,
-				swarmSize = 100;
+	const int	iterlimit = 5,
+				timelimit = -1,
+				swarmSize = 4;
 
 	auto objective = [&](std::vector<int> bookingLimits) {
 		return Helpers::vecAverage(sim.runSimulation(bookingLimits, scenarios));
@@ -45,8 +51,10 @@ Result PSSolver::solve(std::vector<std::vector<int>>& scenarios) {
 
 	sw.start();
 	double tstart = sw.look();
-	for (int i = 0; (iterlimit != -1 && i < iterlimit) || (timelimit != -1 && sw.look() - tstart < (double)timelimit * 1000.0); i++)
+	for (int i = 0; (iterlimit != -1 && i < iterlimit) || (timelimit != -1 && sw.look() - tstart < (double)timelimit * 1000.0); i++) {
 		s.update();
+		s.writeSwarmToFile("swarmIteration" + std::to_string(i + 1) + ".txt");
+	}
 
 	return s.getBestResult();
 }
@@ -131,6 +139,14 @@ void Swarm::initStartingPositions() {
 	}
 }
 
+void Swarm::writeSwarmToFile(const std::string &filename) const {
+	if (DISABLE_SWARM_TRACE) return;
+	Helpers::spit("b2;b3;obj\n", filename);
+	for(int i=0; i<swarmSize; i++) {
+		Helpers::spitAppend(std::to_string(particles(i,1)) + ";" + std::to_string(particles(i,2)) + ";" + std::to_string(objective(particles.row(i))) + "\n", filename);
+	}
+}
+
 void Swarm::initLocalGlobalBests() {
 	personalBests = particles;
 	for (int i = 0; i < swarmSize; i++) {
@@ -141,6 +157,8 @@ void Swarm::initLocalGlobalBests() {
 			globalBestObjective = obj;
 		}
 	}
+
+	writeSwarmToFile("initialSwarm.txt");
 }
 
 void Swarm::initStartingVelocities() {
