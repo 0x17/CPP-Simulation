@@ -8,6 +8,9 @@
 #include <string>
 #include <vector>
 #include <cstdlib>
+#include <chrono>
+#include <fstream>
+#include "Stopwatch.h"
 
 namespace Helpers {
     std::string slurp(const std::string& filename);
@@ -42,6 +45,18 @@ namespace Helpers {
 	inline double randUnitDouble() {
 		return static_cast<double>(rand()) / static_cast<double>(RAND_MAX);
 	}
+
+	class Tracer {
+		std::ofstream f;
+		std::chrono::time_point<std::chrono::system_clock> lupdate;
+		double last_slvtime;
+		Stopwatch sw;
+	public:
+		Tracer(const std::string &filePrefix = "SolverTrace");
+		~Tracer();
+		void trace(double slvtime, float bks_objval, bool trunc_secs = false);
+		void intervalTrace(float bks_objval);
+	};
 };
 
 

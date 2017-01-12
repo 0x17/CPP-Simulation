@@ -8,7 +8,31 @@
 
 using namespace std;
 
+class CustomCallback : public GRBCallback {
+public:
+	CustomCallback(const string &outPath, const string &instanceName);
+private:
+	void callback() override;
+	Helpers::Tracer tr;
+	Stopwatch sw;
+};
+
+string traceFilenameForInstance(const string& outPath, const string& instanceName) {
+	return outPath + "GurobiTrace_" + instanceName;
+}
+
+CustomCallback::CustomCallback(const string &outPath, const string &instanceName) : tr(traceFilenameForInstance(outPath, instanceName)) {
+	sw.start();
+}
+
+void CustomCallback::callback() {
+	if (where == GRB_CB_MIP) {
+		tr.trace(/*getDoubleInfo(GRB_CB_RUNTIME)*/ sw.look(), static_cast<float>(getDoubleInfo(GRB_CB_MIP_OBJBST)));
+	}
+}
+
 Result GurobiOptimizer::solve(std::vector<std::vector<int>>& scenarios) {
+	CustomCallback callback("", to_string(sim.getNumClasses())+"classes");
 	Result res;
 
 	int J = sim.getNumClasses(),
@@ -61,6 +85,7 @@ Result GurobiOptimizer::solve(std::vector<std::vector<int>>& scenarios) {
 	}
 
 	model.update();
+	model.setCallback(&callback);
 
 	try {
 		model.optimize();
