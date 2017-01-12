@@ -10,7 +10,7 @@ using namespace std;
 
 Result AbstractEvaluator::computeOpt(const ResultList& results, bool printOpts) {
 	Result optResult;
-	optResult.profit = std::numeric_limits<float>::min();
+	optResult.profit = std::numeric_limits<float>::lowest();
 
 	for(Result res : results) {
 		if(res.profit >= optResult.profit) {
@@ -39,7 +39,7 @@ Result AbstractEvaluator::solve(AbstractSimulation::ScenarioList& scenarios) {
 	return opt;
 }
 
-ResultList Evaluator2D::collectResults(AbstractSimulation::ScenarioList &scenarios) {
+ResultList Evaluator2D::collectResults(AbstractSimulation::ScenarioList &scenarios) const {
 	ResultList results(sim.getC() + 1);
 	vector<int> bookingLimits(2);
 	bookingLimits[0] = sim.getC();
@@ -50,41 +50,22 @@ ResultList Evaluator2D::collectResults(AbstractSimulation::ScenarioList &scenari
 	return results;
 }
 
-ResultList EvaluatorMultiDimensional::collectResults(AbstractSimulation::ScenarioList &scenarios) {
-	ResultList results((int)(0.5 * (double)(sim.getC() + 1) * (double)(sim.getC() + 2)));
+ResultList EvaluatorMultiDimensional::collectResults(AbstractSimulation::ScenarioList &scenarios) const {
+	ResultList resultList(1);
 	vector<int> bookingLimits(sim.getNumClasses());
-	
-	int ctr = 0;
 
-	auto buildFirstRow = [&]() {
-		std::vector<std::string> classCaptions(sim.getNumClasses() - 1);
-		for (int i = 1; i < sim.getNumClasses(); i++) {
-			classCaptions[i] = "b" + to_string(i + 1);
-		}
-		string firstRow = boost::algorithm::join(classCaptions, ";");
-		firstRow += ";obj\n";
-		return firstRow;
-	};
-
-	auto buildRow = [&]() {
-		std::vector<std::string> blstrs(sim.getNumClasses() - 1);
-		for (int i = 1; i<sim.getNumClasses(); i++) {
-			blstrs[i] = to_string(bookingLimits[i]);
-		}
-		string row = boost::algorithm::join(blstrs, ";");
-		row += ";" + to_string(results[ctr - 1].profit) + "\n";
-		return row;
-	};
-
-	Helpers::spit(buildFirstRow(), "fullEnumObjectives.txt");
+	resultList[0].profit = numeric_limits<double>::lowest();
 
 	bookingLimits[0] = sim.getC();
 
 	std::function<void(int)> recursiveCollector = [&](int classIndex) {
 		if (classIndex == bookingLimits.size()) {
-			results[ctr].bookingLimits = bookingLimits;
-			results[ctr++].profit = Helpers::vecAverage(sim.runSimulation(bookingLimits, scenarios));			
-			Helpers::spitAppend(buildRow(), "fullEnumObjectives.txt");
+			double obj = Helpers::vecAverage(sim.runSimulation(bookingLimits, scenarios));
+			if(obj > resultList[0].profit) {
+				resultList[0].profit = obj;
+				resultList[0].bookingLimits = bookingLimits;
+				std::cout << "Found new solution with objective: " << obj << std::endl;
+			}
 		}
 		else {
 			for (bookingLimits[classIndex] = 0; bookingLimits[classIndex] <= bookingLimits[classIndex - 1]; bookingLimits[classIndex]++) {
@@ -95,13 +76,19 @@ ResultList EvaluatorMultiDimensional::collectResults(AbstractSimulation::Scenari
 
 	recursiveCollector(1);
 
-	/*for(bookingLimits[1] = 0; bookingLimits[1] <= bookingLimits[0]; bookingLimits[1]++) {
+	return resultList;
+}
+
+ResultList Evaluator3D::collectResults(AbstractSimulation::ScenarioList &scenarios) const {
+	ResultList results((int)(0.5 * (double)(sim.getC() + 1) * (double)(sim.getC() + 2)));
+	vector<int> bookingLimits(sim.getNumClasses());
+	bookingLimits[0] = sim.getC();
+	int ctr = 0;
+	for(bookingLimits[1] = 0; bookingLimits[1] <= bookingLimits[0]; bookingLimits[1]++) {
 		for(bookingLimits[2] = 0; bookingLimits[2] <= bookingLimits[1]; bookingLimits[2]++) {
 			results[ctr].bookingLimits = bookingLimits;
 			results[ctr++].profit = Helpers::vecAverage(sim.runSimulation(bookingLimits, scenarios));
-			Helpers::spitAppend(to_string(bookingLimits[1]) + ";" + to_string(bookingLimits[2]) + ";" + to_string(results[ctr - 1].profit) + "\n", "fullEnumObjectives.txt");
 		}
-	}*/
-
+	}
 	return results;
 }

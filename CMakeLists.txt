@@ -8,5 +8,5 @@ link_directories(/usr/local/opt/boost/lib /opt/localsolver_6_0/bin /Library/guro
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -llocalsolver -lboost_system -lboost_filesystem -lgurobi_c++ -lgurobi70")
 
-set(SOURCE_FILES main.cpp json11.cpp json11.hpp Helpers.cpp Helpers.h Simulation.cpp Simulation.h Evaluator.cpp Evaluator.h GurobiSolver.cpp GurobiSolver.h LSSolver.cpp LSSolver.h Stopwatch.cpp Stopwatch.h Matrix.h)
+set(SOURCE_FILES main.cpp json11.cpp json11.hpp Helpers.cpp Helpers.h Simulation.cpp Simulation.h Evaluator.cpp Evaluator.h GurobiSolver.cpp GurobiSolver.h LSSolver.cpp LSSolver.h Stopwatch.cpp Stopwatch.h Matrix.h PSSolver.h PSSolver.cpp)
 add_executable(CPP_Simulation ${SOURCE_FILES})

@@ -1,12 +1,11 @@
 #include <boost/algorithm/clamp.hpp>
 #include <functional>
+#include <cmath>
 
 #include "PSSolver.h"
 #include "Matrix.h"
 #include "Helpers.h"
 #include "Stopwatch.h"
-
-const bool DISABLE_SWARM_TRACE = true;
 
 class Swarm {
 public:
@@ -140,7 +139,8 @@ void Swarm::initStartingPositions() {
 }
 
 void Swarm::writeSwarmToFile(const std::string &filename) const {
-	if (DISABLE_SWARM_TRACE) return;
+	if(numClasses != 3) return;
+
 	Helpers::spit("b2;b3;obj\n", filename);
 	for(int i=0; i<swarmSize; i++) {
 		Helpers::spitAppend(std::to_string(particles(i,1)) + ";" + std::to_string(particles(i,2)) + ";" + std::to_string(objective(particles.row(i))) + "\n", filename);

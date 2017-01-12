@@ -1,0 +1,69 @@
+{
+  "capacity": 200,
+  "clients": [
+    {
+      "name": "A",
+      "expD": 5.0,
+      "devD": 1.0,
+      "description": "r/c=25",
+      "consumptionPerReq": 4.0,
+      "revenuePerReq": 100.0
+    },
+    {
+      "name": "B",
+      "expD": 10.0,
+      "devD": 1.0,
+      "description": "r/c=10",
+      "consumptionPerReq": 2.0,
+      "revenuePerReq": 20.0
+    },
+    {
+      "name": "C",
+      "expD": 33.0,
+      "devD": 1.0,
+      "description": "r/c=3.125",
+      "consumptionPerReq": 4.0,
+      "revenuePerReq": 12.5
+    },
+	{
+      "name": "D",
+      "expD": 55.0,
+      "devD": 1.0,
+      "description": "r/c=3",
+      "consumptionPerReq": 1.0,
+      "revenuePerReq": 3.0
+    },
+	{
+      "name": "E",
+      "expD": 88.0,
+      "devD": 1.0,
+      "description": "r/c=2.5",
+      "consumptionPerReq": 1.0,
+      "revenuePerReq": 2.5
+    },
+	{
+      "name": "F",
+      "expD": 100.0,
+      "devD": 1.0,
+      "description": "r/c=2",
+      "consumptionPerReq": 1.0,
+      "revenuePerReq": 2.0
+    },
+	{
+      "name": "G",
+      "expD": 180.0,
+      "devD": 1.0,
+      "description": "r/c=1.5",
+      "consumptionPerReq": 1.0,
+      "revenuePerReq": 1.5
+    },
+	{
+      "name": "H",
+      "expD": 250.0,
+      "devD": 1.0,
+      "description": "r/c=1.0",
+      "consumptionPerReq": 1.0,
+      "revenuePerReq": 1.0
+    }
+  ]
+}

@@ -7,6 +7,7 @@
 
 #include <string>
 #include <vector>
+#include <cstdlib>
 
 namespace Helpers {
     std::string slurp(const std::string& filename);
