@@ -1,4 +1,4 @@
-//
+﻿//
 // Created by André Schnabel on 30.10.16.
 //
 
@@ -54,8 +54,8 @@ namespace Helpers {
 	public:
 		Tracer(const std::string &filePrefix = "SolverTrace");
 		~Tracer();
-		void trace(double slvtime, float bks_objval, bool trunc_secs = false);
-		void intervalTrace(float bks_objval);
+		void trace(double slvtime, double bks_objval, bool trunc_secs = false);
+		void intervalTrace(double bks_objval);
 	};
 };
 

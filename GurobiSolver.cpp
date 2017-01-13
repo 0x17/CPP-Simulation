@@ -10,18 +10,14 @@ using namespace std;
 
 class CustomCallback : public GRBCallback {
 public:
-	CustomCallback(const string &outPath, const string &instanceName);
+	CustomCallback();
 private:
 	void callback() override;
 	Helpers::Tracer tr;
 	Stopwatch sw;
 };
 
-string traceFilenameForInstance(const string& outPath, const string& instanceName) {
-	return outPath + "GurobiTrace_" + instanceName;
-}
-
-CustomCallback::CustomCallback(const string &outPath, const string &instanceName) : tr(traceFilenameForInstance(outPath, instanceName)) {
+CustomCallback::CustomCallback() : tr("GurobiTrace") {
 	sw.start();
 }
 
@@ -32,7 +28,7 @@ void CustomCallback::callback() {
 }
 
 Result GurobiOptimizer::solve(std::vector<std::vector<int>>& scenarios) {
-	CustomCallback callback("", to_string(sim.getNumClasses())+"classes");
+	CustomCallback callback;
 	Result res;
 
 	int J = sim.getNumClasses(),

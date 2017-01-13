@@ -8,6 +8,9 @@ using namespace std;
 using namespace localsolver;
 
 lsdouble RevenueComputationNativeFunction::call(const LSNativeContext& context) {
+	static Helpers::Tracer tr("LocalSolverTrace");
+	static double bks = numeric_limits<double>::lowest();
+
 	int nclasses = sim.getNumClasses();
 
 	vector<int> bookingLimits(nclasses);	
@@ -15,7 +18,14 @@ lsdouble RevenueComputationNativeFunction::call(const LSNativeContext& context) 
 		bookingLimits[i] = (int)context.getIntValue(i);
 	}
 
-	return sim.averageRevenueOfSimulation(bookingLimits, scenarios);
+	double obj = sim.averageRevenueOfSimulation(bookingLimits, scenarios);
+	if(obj > bks) {
+		bks = obj;
+	}
+
+	tr.intervalTrace(bks);
+
+	return obj;
 }
 
 LSOptimizer::LSOptimizer(AbstractSimulation& _sim): BookingLimitOptimizer("LocalSolverNative", _sim), rfunc(_sim), bookingLimits(sim.getNumClasses()) {

@@ -76,13 +76,13 @@ namespace Helpers {
 		f.close();
 	}
 
-	void Tracer::trace(double slvtime, float bks_objval, bool trunc_secs) {
+	void Tracer::trace(double slvtime, double bks_objval, bool trunc_secs) {
 		double insecs = (slvtime / 1000.0);
 		if (trunc_secs) insecs = trunc(insecs);
 		f << (boost::format("%.2f") % insecs) << "," << bks_objval << endl;
 	}
 
-	void Tracer::intervalTrace(float bks_objval) {
+	void Tracer::intervalTrace(double bks_objval) {
 		double slvtime = sw.look();
 		double deltat = chrono::duration<double, milli>(chrono::system_clock::now() - lupdate).count();
 		if(slvtime < 1000.0 && deltat >= MSECS_BETWEEN_TRACES_SHORT) {

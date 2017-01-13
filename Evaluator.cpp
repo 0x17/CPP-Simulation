@@ -53,6 +53,7 @@ ResultList Evaluator2D::collectResults(AbstractSimulation::ScenarioList &scenari
 ResultList EvaluatorMultiDimensional::collectResults(AbstractSimulation::ScenarioList &scenarios) const {
 	ResultList resultList(1);
 	vector<int> bookingLimits(sim.getNumClasses());
+	Helpers::Tracer tr("FullEnumerationTrace");
 
 	resultList[0].profit = numeric_limits<double>::lowest();
 
@@ -60,6 +61,8 @@ ResultList EvaluatorMultiDimensional::collectResults(AbstractSimulation::Scenari
 
 	std::function<void(int)> recursiveCollector = [&](int classIndex) {
 		if (classIndex == bookingLimits.size()) {
+			tr.intervalTrace(resultList[0].profit);
+
 			double obj = Helpers::vecAverage(sim.runSimulation(bookingLimits, scenarios));
 			if(obj > resultList[0].profit) {
 				resultList[0].profit = obj;

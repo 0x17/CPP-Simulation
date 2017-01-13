@@ -112,11 +112,15 @@ void Swarm::updateLocalGlobalBests(int particleIndex) {
 }
 
 void Swarm::update() {
+	static Helpers::Tracer tr("ParticleSwarmTrace");
+
 	for (int i = 0; i < swarmSize; i++) {
 		updateParticlePositionAndVelocity(i);
 		restrictParticleToBounds(i);
 		updateLocalGlobalBests(i);
 	}
+
+	tr.intervalTrace(globalBestObjective);
 }
 
 Result Swarm::getBestResult() const {
