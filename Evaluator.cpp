@@ -54,12 +54,20 @@ ResultList EvaluatorMultiDimensional::collectResults(AbstractSimulation::Scenari
 	ResultList resultList(1);
 	vector<int> bookingLimits(sim.getNumClasses());
 	Helpers::Tracer tr("FullEnumerationTrace");
+	Stopwatch sw;
+	const int timelimit = 30;
 
 	resultList[0].profit = numeric_limits<double>::lowest();
 
 	bookingLimits[0] = sim.getC();
 
+	sw.start();
+	double tstart = sw.look();
+
 	std::function<void(int)> recursiveCollector = [&](int classIndex) {
+		if (timelimit != -1 && sw.look() - tstart >= (double)timelimit * 1000.0)
+			return;
+
 		if (classIndex == bookingLimits.size()) {
 			tr.intervalTrace(resultList[0].profit);
 
@@ -67,7 +75,6 @@ ResultList EvaluatorMultiDimensional::collectResults(AbstractSimulation::Scenari
 			if(obj > resultList[0].profit) {
 				resultList[0].profit = obj;
 				resultList[0].bookingLimits = bookingLimits;
-				std::cout << "Found new solution with objective: " << obj << std::endl;
 			}
 		}
 		else {

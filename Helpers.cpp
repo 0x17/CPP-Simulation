@@ -68,7 +68,7 @@ namespace Helpers {
 		last_slvtime = 0.0;
 		if(!f.is_open())
 			throw runtime_error("Unable to create " + filePrefix + ".txt!");
-		f << "slvtime,bks_objval\n";
+		f << "slvtime;bks_objval\n";
 		trace(0.0, 0.0f);
 	}
 
@@ -79,7 +79,7 @@ namespace Helpers {
 	void Tracer::trace(double slvtime, double bks_objval, bool trunc_secs) {
 		double insecs = (slvtime / 1000.0);
 		if (trunc_secs) insecs = trunc(insecs);
-		f << (boost::format("%.2f") % insecs) << "," << bks_objval << endl;
+		f << (boost::format("%.2f") % insecs) << ";" << bks_objval << endl;
 	}
 
 	void Tracer::intervalTrace(double bks_objval) {

@@ -111,7 +111,7 @@ OptionalPolicy MultiClassSimulation::heuristicPolicy() const {
 	vector<int> bookingLimits(numClasses);
 	bookingLimits[0] = C;	
 	for(int j=1; j<numClasses; j++) {
-		bookingLimits[j] = (int)floor( min(customers[j].expD, (double)bookingLimits[j-1]) );
+		bookingLimits[j] = (int)floor( min(customers[j].expD * customers[j].consumptionPerReq, (double)bookingLimits[j-1]) );
 	}
 	return bookingLimits;
 }

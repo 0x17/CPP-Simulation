@@ -1,8 +1,6 @@
 #include "LSSolver.h"
 #include "Simulation.h"
 #include "Helpers.h"
-#include "Evaluator.h"
-#include <iostream>
 
 using namespace std;
 using namespace localsolver;
@@ -51,13 +49,15 @@ LSOptimizer::LSOptimizer(AbstractSimulation& _sim): BookingLimitOptimizer("Local
 			bookingLimits[j].setIntValue((*heuristicBookingLimits)[j]);
 		}
 	}
+
+	ls.getParam().setNbThreads(1);
 }
 
 Result LSOptimizer::solve(std::vector<std::vector<int>>& scenarios) {
 	rfunc.setScenarios(scenarios);
 
 	auto lsphase = ls.createPhase();
-	lsphase.setTimeLimit(3);
+	lsphase.setTimeLimit(30);
 
 	ls.solve();
 

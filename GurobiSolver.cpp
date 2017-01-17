@@ -40,7 +40,8 @@ Result GurobiOptimizer::solve(std::vector<std::vector<int>>& scenarios) {
 
 	GRBEnv env;
 	env.set(GRB_DoubleParam_MIPGap, 0.0);
-	env.set(GRB_DoubleParam_TimeLimit, 30);
+	env.set(GRB_DoubleParam_TimeLimit, /*GRB_INFINITY*/ 30.0);
+	env.set(GRB_IntParam_Threads, 1);
 
 	GRBModel model(env);
 
@@ -90,6 +91,9 @@ Result GurobiOptimizer::solve(std::vector<std::vector<int>>& scenarios) {
 		res.bookingLimits = Helpers::constructVector<int>(J, [&](int j) { return (int)bcj[j].get(GRB_DoubleAttr_X); });;
 
 		cout << "Optimality: " << (model.get(GRB_IntAttr_Status) == GRB_OPTIMAL) << endl;
+
+		double secondsElapsed = model.get(GRB_DoubleAttr_Runtime);
+		Helpers::spitAppend(to_string(S) + ";" + to_string(secondsElapsed) + "\n", "solvetimeforntries.txt");
 	}
 	catch (GRBException e) {
 		cout << "Error code = " << e.getErrorCode() << endl;

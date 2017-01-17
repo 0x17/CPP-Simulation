@@ -37,9 +37,9 @@ private:
 PSSolver::PSSolver(AbstractSimulation &_sim) : BookingLimitOptimizer("ParticleSwarm", _sim) {}
 
 Result PSSolver::solve(std::vector<std::vector<int>>& scenarios) {
-	const int	iterlimit = 5,
-				timelimit = -1,
-				swarmSize = 4;
+	const int	iterlimit = -1,
+				timelimit = 30,
+				swarmSize = 20;
 
 	auto objective = [&](std::vector<int> bookingLimits) {
 		return Helpers::vecAverage(sim.runSimulation(bookingLimits, scenarios));
