@@ -17,7 +17,7 @@ void testInverseNormal() {
 }
 
 void runOptimizers() {
-	const int ntries = 30;
+	const int ntries = 150;
 
 	cout << "Number of scenarios: " << ntries << endl << endl;
 

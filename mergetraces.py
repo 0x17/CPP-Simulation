@@ -13,9 +13,9 @@ def last_value_up_to(x, pairs):
 
 def build_csv_from_results(merged_results):
     ostr = 't;' + ';'.join(trace_files) + '\n'
-    for t, reslist in merged_results.items():
-        ostr += str(t) + ';' + ';'.join(map(lambda n: str(n), reslist)) + '\n'
-    return ostr
+    for t in sorted(merged_results):
+        ostr += str(t) + ';' + ';'.join(map(lambda n: str(n), merged_results[t])) + '\n'
+    return ostr.replace('.',',')
 
 
 trace_files = list(filter(lambda fn: fn.endswith('Trace.txt'), os.listdir('.')))

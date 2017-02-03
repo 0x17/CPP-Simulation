@@ -1,12 +1,19 @@
 cmake_minimum_required(VERSION 3.6)
 project(CPP_Simulation)
 
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
-include_directories(/usr/local/opt/boost/include /opt/localsolver_6_0/include /Library/gurobi700/mac64/include)
-link_directories(/usr/local/opt/boost/lib /opt/localsolver_6_0/bin /Library/gurobi700/mac64/lib)
+find_package(Boost COMPONENTS system filesystem REQUIRED)
+find_package(GTest REQUIRED)
 
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -llocalsolver -lboost_system -lboost_filesystem -lgurobi_c++ -lgurobi70")
+include_directories(${Boost_INCLUDE_DIRS} ${GTEST_INCLUDE_DIRS} /opt/localsolver_6_0/include /Library/gurobi700/mac64/include)
 
-set(SOURCE_FILES main.cpp json11.cpp json11.hpp Helpers.cpp Helpers.h Simulation.cpp Simulation.h Evaluator.cpp Evaluator.h GurobiSolver.cpp GurobiSolver.h LSSolver.cpp LSSolver.h Stopwatch.cpp Stopwatch.h Matrix.h PSSolver.h PSSolver.cpp)
+link_directories(/opt/localsolver_6_0/bin /Library/gurobi700/mac64/lib)
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -llocalsolver -lgurobi_c++ -lgurobi70")
+
+set(COMMON_SOURCE_FILES json11.cpp json11.hpp Helpers.cpp Helpers.h Simulation.cpp Simulation.h Evaluator.cpp Evaluator.h GurobiSolver.cpp GurobiSolver.h LSSolver.cpp LSSolver.h Stopwatch.cpp Stopwatch.h Matrix.h PSSolver.h PSSolver.cpp)
+
+set(SOURCE_FILES main.cpp ${COMMON_SOURCE_FILES})
 add_executable(CPP_Simulation ${SOURCE_FILES})
+target_link_libraries(CPP_Simulation ${Boost_LIBRARIES} ${GTEST_BOTH_LIBRARIES})
