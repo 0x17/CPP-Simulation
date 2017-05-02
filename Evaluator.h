@@ -1,9 +1,6 @@
 #pragma once
-#include <tuple>
-#include <vector>
-#include "Simulation.h"
 
-class AbstractSimulation;
+#include "Simulation.h"
 
 class AbstractEvaluator : public BookingLimitOptimizer
 {

@@ -6,10 +6,11 @@
 #include "Stopwatch.h"
 
 #include <boost/math/distributions/normal.hpp>
+
 #include <fstream>
 #include <random>
-#include <map>
 #include <numeric>
+
 using namespace std;
 
 string Helpers::slurp(const string &filename) {
@@ -45,8 +46,8 @@ double Helpers::vecAverage(const vector<double>& nums) {
 	return accumulate(nums.begin(), nums.end(), 0.0) / (double)nums.size();
 }
 
-void Helpers::spit(const std::string &s, const std::string &filename) {
-	std::ofstream f(filename);
+void Helpers::spit(const string &s, const string &filename) {
+	ofstream f(filename);
 	if(f.is_open()) {
 		f << s;
 		f.close();

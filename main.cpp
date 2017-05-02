@@ -28,8 +28,8 @@ void runOptimizers() {
 	GurobiOptimizer gurobi(sim);
 	PSSolver ps(sim);
 
-	vector<BookingLimitOptimizer *> optimizers = {  &evl, &ls, &gurobi, &ps };
-	//vector<BookingLimitOptimizer *> optimizers = { &ps };
+	//vector<BookingLimitOptimizer *> optimizers = {  &evl, &ls, &gurobi, &ps };
+	vector<BookingLimitOptimizer *> optimizers = { &ls };
 
 	auto scenarios = sim.generateScenarios(ntries, 42, AbstractSimulation::SamplingType::Descriptive);
 
@@ -124,7 +124,9 @@ int main() {
 	runOptimizers();
 	//testInverseNormal();
 	//effectOfDescriptiveSampling();
+
 	cout << "Press [Return] to quit!" << endl;
 	getchar();
+
     return 0;
 }

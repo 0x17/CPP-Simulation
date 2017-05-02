@@ -53,11 +53,11 @@ LSOptimizer::LSOptimizer(AbstractSimulation& _sim): BookingLimitOptimizer("Local
 	ls.getParam().setNbThreads(1);
 }
 
-Result LSOptimizer::solve(std::vector<std::vector<int>>& scenarios) {
+Result LSOptimizer::solve(vector<vector<int>>& scenarios) {
 	rfunc.setScenarios(scenarios);
 
 	auto lsphase = ls.createPhase();
-	lsphase.setTimeLimit(30);
+	lsphase.setTimeLimit(5);
 
 	ls.solve();
 

@@ -10,7 +10,7 @@ using namespace std;
 
 Result AbstractEvaluator::computeOpt(const ResultList& results, bool printOpts) {
 	Result optResult;
-	optResult.profit = std::numeric_limits<float>::lowest();
+	optResult.profit = numeric_limits<float>::lowest();
 
 	for(Result res : results) {
 		if(res.profit >= optResult.profit) {
@@ -64,7 +64,7 @@ ResultList EvaluatorMultiDimensional::collectResults(AbstractSimulation::Scenari
 	sw.start();
 	double tstart = sw.look();
 
-	std::function<void(int)> recursiveCollector = [&](int classIndex) {
+	function<void(int)> recursiveCollector = [&](int classIndex) {
 		if (timelimit != -1 && sw.look() - tstart >= (double)timelimit * 1000.0)
 			return;
 

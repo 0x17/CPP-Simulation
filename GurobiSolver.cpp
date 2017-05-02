@@ -27,7 +27,7 @@ void CustomCallback::callback() {
 	}
 }
 
-Result GurobiOptimizer::solve(std::vector<std::vector<int>>& scenarios) {
+Result GurobiOptimizer::solve(vector<vector<int>>& scenarios) {
 	CustomCallback callback;
 	Result res;
 

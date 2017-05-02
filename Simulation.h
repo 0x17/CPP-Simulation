@@ -5,7 +5,6 @@
 #ifndef CPP_SIMULATION_SIMULATION_H
 #define CPP_SIMULATION_SIMULATION_H
 
-#include <list>
 #include <boost/optional.hpp>
 #include "json11.hpp"
 

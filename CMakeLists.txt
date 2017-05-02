@@ -16,4 +16,8 @@ set(COMMON_SOURCE_FILES json11.cpp json11.hpp Helpers.cpp Helpers.h Simulation.c
 
 set(SOURCE_FILES main.cpp ${COMMON_SOURCE_FILES})
 add_executable(CPP_Simulation ${SOURCE_FILES})
-target_link_libraries(CPP_Simulation ${Boost_LIBRARIES} ${GTEST_BOTH_LIBRARIES})
+target_link_libraries(CPP_Simulation ${Boost_LIBRARIES})
+
+set(TEST_SOURCE_FILES UnitTests/testmain.cpp UnitTests/MatrixTest.h UnitTests/MatrixTest.cpp UnitTests/TestHelpers.h UnitTests/TestHelpers.cpp)
+add_executable(CPP_Simulation_Test ${TEST_SOURCE_FILES})
+target_link_libraries(CPP_Simulation_Test ${Boost_LIBRARIES} ${GTEST_BOTH_LIBRARIES})

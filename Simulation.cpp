@@ -48,8 +48,8 @@ double AbstractSimulation::averageRevenueOfSimulation(const std::vector<int>& bo
 	return Helpers::vecAverage(runSimulation(bookingLimits, scenarios));
 }
 
-std::vector<double> AbstractSimulation::statisticalMeansOfScenarios(ScenarioList& scenarios) {
-	vector<double> means = Helpers::constructVector<double>(scenarios[0].size(), [&](int ix) { return 0.0; });
+vector<double> AbstractSimulation::statisticalMeansOfScenarios(ScenarioList& scenarios) {
+	vector<double> means = Helpers::constructVector<double>((int)scenarios[0].size(), [&](int ix) { return 0.0; });
 	for(auto scenario : scenarios) {
 		for(int i=0; i<means.size(); i++) {
 			means[i] += scenario[i];
@@ -61,9 +61,9 @@ std::vector<double> AbstractSimulation::statisticalMeansOfScenarios(ScenarioList
 	return means;
 }
 
-std::vector<double> AbstractSimulation::statisticalStandardDeviationsOfScenarios(ScenarioList& scenarios) {
+vector<double> AbstractSimulation::statisticalStandardDeviationsOfScenarios(ScenarioList& scenarios) {
 	auto means = statisticalMeansOfScenarios(scenarios);
-	vector<double> stddevs = Helpers::constructVector<double>(scenarios[0].size(), [&](int ix) { return 0.0; });
+	vector<double> stddevs = Helpers::constructVector<double>((int)scenarios[0].size(), [&](int ix) { return 0.0; });
 	for (auto scenario : scenarios) {
 		for (int i = 0; i<stddevs.size(); i++) {
 			stddevs[i] += pow(scenario[i] - means[i], 2);
@@ -88,10 +88,14 @@ OptionalPolicy TwoClassSimulation::heuristicPolicy() const {
 	return bookingLimits;
 }
 
-OptionalPolicy TwoClassSimulation::optimalPolicy() const {
-	double x = (customers[0].revenuePerReq - customers[1].revenuePerReq) / customers[0].revenuePerReq;
-	vector<int> bookingLimits = { C, (int)floor(customers[0].consumptionPerReq * Helpers::invNormal(x, customers[0].expD, customers[0].devD)) };
-	return bookingLimits;
+OptionalPolicy TwoClassSimulation::optimalPolicy() const {	
+	if (customers[0].consumptionPerReq == 1 && customers[1].consumptionPerReq == 1) {
+		vector<int> bookingLimits;
+		double x = (customers[0].revenuePerReq - customers[1].revenuePerReq) / customers[0].revenuePerReq;
+		bookingLimits = { C, C - (int)floor(customers[0].consumptionPerReq * Helpers::invNormal(x, customers[0].expD, customers[0].devD)) };
+		return bookingLimits;
+	}
+	return OptionalPolicy();
 }
 
 double MultiClassSimulation::objective(const vector<int>& demands, const vector<int>& bookingLimits) {

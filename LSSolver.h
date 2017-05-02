@@ -4,7 +4,6 @@
 #include <vector>
 #include "Simulation.h"
 
-
 class RevenueComputationNativeFunction : public localsolver::LSNativeFunction {
 public:
 	RevenueComputationNativeFunction(AbstractSimulation &_sim) : sim(_sim), scenarios(emptyScenarios) {}

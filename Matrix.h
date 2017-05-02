@@ -6,6 +6,7 @@
 #define CPP_RCPSP_OC_MATRIX_H
 
 #include <vector>
+#include <sstream>
 
 template<class T>
 class Matrix {
@@ -28,9 +29,23 @@ public:
                 data[i*n+j] = rows[i][j];
     }
 
+	enum class Mode {
+	    COLUMN_VECTOR,
+		ROW_VECTOR
+    };
+
+	Matrix(Mode m, const std::vector<T> &vec)
+		: Matrix(
+			m == Mode::COLUMN_VECTOR ? static_cast<int>(vec.size()) : 1,
+			m == Mode::COLUMN_VECTOR ? 1 : static_cast<int>(vec.size()),
+			[&](int i, int j) { return vec[m == Mode::COLUMN_VECTOR ? i : j]; }) {
+    }
+
     Matrix() : m(0), n(0) {}
 
     Matrix(int _m, int _n) : m(_m), n(_n), data(_m*_n) {}
+
+	Matrix(int _m, int _n, int value) : Matrix(_m, _n, [value](int i, int j) { return value; }) {}
 
     ~Matrix() {}
 
@@ -39,6 +54,8 @@ public:
 
     inline T operator()(int i, int j) const { return data[i*n+j]; }
     inline T &operator()(int i, int j) { return data[i*n+j]; }
+
+	T at(int i, int j) const { return data[i*n + j]; }
 
     Matrix &operator=(const Matrix &mx) {
 		data = mx.data;
@@ -87,6 +104,20 @@ public:
 			for (int j = 0; j < n; j++)
 				data[i*n + j] = f(i, j);
     }
+
+	std::string toString() const {
+		std::stringstream out;
+		out << "Matrix(m=" << m << ",n=" << n << "," << std::endl << "{";
+		for (int i = 0; i < m; i++) {
+			out << "{";
+			for (int j = 0; j < n; j++) {
+				out << at(i, j) << (j + 1 == n ? "" : ",");
+			}
+			out << "}" << (i + 1 == m ? "" : ",") << std::endl;
+		}
+		out << "}" << std::endl;
+		return out.str();
+	}
 };
 
 
