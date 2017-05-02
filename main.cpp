@@ -7,8 +7,24 @@
 #include "GurobiSolver.h"
 #include "PSSolver.h"
 #include "Helpers.h"
+#include <thread>
 
 using namespace std;
+
+void runOptimizers();
+void testInverseNormal();
+void effectOfDescriptiveSampling();
+
+int main() {
+	runOptimizers();
+	//testInverseNormal();
+	//effectOfDescriptiveSampling();
+
+	cout << "Press [Return] to quit!" << endl;
+	getchar();
+
+	return 0;
+}
 
 void testInverseNormal() {
 	const double epsilon = 0.00001;
@@ -21,15 +37,16 @@ void runOptimizers() {
 
 	cout << "Number of scenarios: " << ntries << endl << endl;
 
-	MultiClassSimulation sim("multi_data_big.json");
+	//MultiClassSimulation sim("multi_data_big.json");
+	MultiClassSimulation sim("multi_data.json");
 
 	EvaluatorMultiDimensional evl(sim);
 	LSOptimizer ls(sim);
 	GurobiOptimizer gurobi(sim);
 	PSSolver ps(sim);
 
-	//vector<BookingLimitOptimizer *> optimizers = {  &evl, &ls, &gurobi, &ps };
-	vector<BookingLimitOptimizer *> optimizers = { &ls };
+	vector<BookingLimitOptimizer *> optimizers = {  &evl, &ls, &gurobi, &ps };
+	//vector<BookingLimitOptimizer *> optimizers = { &ls };
 
 	auto scenarios = sim.generateScenarios(ntries, 42, AbstractSimulation::SamplingType::Descriptive);
 
@@ -118,15 +135,4 @@ void effectOfDescriptiveSampling() {
 			+ ";" + to_string(Helpers::vecAverage(diffStddevsDescr))
 			+ "\n"), "diffmeans.txt");
 	}
-}
-
-int main() {
-	runOptimizers();
-	//testInverseNormal();
-	//effectOfDescriptiveSampling();
-
-	cout << "Press [Return] to quit!" << endl;
-	getchar();
-
-    return 0;
 }

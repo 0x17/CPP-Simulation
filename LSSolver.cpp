@@ -57,7 +57,7 @@ Result LSOptimizer::solve(vector<vector<int>>& scenarios) {
 	rfunc.setScenarios(scenarios);
 
 	auto lsphase = ls.createPhase();
-	lsphase.setTimeLimit(5);
+	lsphase.setTimeLimit(30);
 
 	ls.solve();
 

@@ -93,7 +93,7 @@ Result GurobiOptimizer::solve(vector<vector<int>>& scenarios) {
 		cout << "Optimality: " << (model.get(GRB_IntAttr_Status) == GRB_OPTIMAL) << endl;
 
 		double secondsElapsed = model.get(GRB_DoubleAttr_Runtime);
-		Helpers::spitAppend(to_string(S) + ";" + to_string(secondsElapsed) + "\n", "solvetimeforntries.txt");
+		//Helpers::spitAppend(to_string(S) + ";" + to_string(secondsElapsed) + "\n", "solvetimeforntries.txt");
 	}
 	catch (GRBException e) {
 		cout << "Error code = " << e.getErrorCode() << endl;

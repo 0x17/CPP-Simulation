@@ -1,19 +1,22 @@
 #include <boost/algorithm/clamp.hpp>
 #include <functional>
 #include <cmath>
+#include <iostream>
 
 #include "PSSolver.h"
 #include "Matrix.h"
 #include "Helpers.h"
 #include "Stopwatch.h"
 
+using namespace std;
+
 class Swarm {
 public:
-	Swarm(int _swarmSize, int _numClasses, int _C, std::function<double(std::vector<int>)> _objective, boost::optional<std::vector<int>> seedSolution);	
+	Swarm(int _swarmSize, int _numClasses, int _C, function<double(vector<int>)> _objective, boost::optional<vector<int>> seedSolution);	
 	void update();
 	Result getBestResult() const;
 
-	void writeSwarmToFile(const std::string &filename) const;
+	void writeSwarmToFile(const string &filename) const;
 
 private:
 	void initStartingPositions();	
@@ -27,21 +30,21 @@ private:
 	int swarmSize, numClasses, C;
 	Matrix<int> particles, personalBests;
 	Matrix<double> velocities;
-	std::vector<double> personalBestObjectives;
+	vector<double> personalBestObjectives;
 	double globalBestObjective;
-	std::vector<int> globalBest;
-	std::function<double(std::vector<int>)> objective;
-	boost::optional<std::vector<int>> seedSolution;
+	vector<int> globalBest;
+	function<double(vector<int>)> objective;
+	boost::optional<vector<int>> seedSolution;
 };
 
 PSSolver::PSSolver(AbstractSimulation &_sim) : BookingLimitOptimizer("ParticleSwarm", _sim) {}
 
-Result PSSolver::solve(std::vector<std::vector<int>>& scenarios) {
+Result PSSolver::solve(vector<vector<int>>& scenarios) {
 	const int	iterlimit = -1,
 				timelimit = 30,
 				swarmSize = 20;
 
-	auto objective = [&](std::vector<int> bookingLimits) {
+	auto objective = [&](vector<int> bookingLimits) {
 		return Helpers::vecAverage(sim.runSimulation(bookingLimits, scenarios));
 	};
 
@@ -52,13 +55,14 @@ Result PSSolver::solve(std::vector<std::vector<int>>& scenarios) {
 	double tstart = sw.look();
 	for (int i = 0; (iterlimit != -1 && i < iterlimit) || (timelimit != -1 && sw.look() - tstart < (double)timelimit * 1000.0); i++) {
 		s.update();
-		s.writeSwarmToFile("swarmIteration" + std::to_string(i + 1) + ".txt");
+		cout << "Particle swarm iteration " << i << "\r" << flush;
+		//s.writeSwarmToFile("swarmIteration" + to_string(i + 1) + ".txt");
 	}
 
 	return s.getBestResult();
 }
 
-Swarm::Swarm(int _swarmSize, int _numClasses, int _C, std::function<double(std::vector<int>)> _objective, boost::optional<std::vector<int>> _seedSolution) :
+Swarm::Swarm(int _swarmSize, int _numClasses, int _C, function<double(vector<int>)> _objective, boost::optional<vector<int>> _seedSolution) :
 	swarmSize(_swarmSize),
 	numClasses(_numClasses),
 	C(_C),
@@ -66,7 +70,7 @@ Swarm::Swarm(int _swarmSize, int _numClasses, int _C, std::function<double(std::
 	personalBests(swarmSize, _numClasses),
 	velocities(swarmSize, _numClasses),
 	personalBestObjectives(_swarmSize),
-	globalBestObjective(std::numeric_limits<double>::lowest()),
+	globalBestObjective(numeric_limits<double>::lowest()),
 	globalBest(_numClasses),
 	objective(_objective),
 	seedSolution(_seedSolution) {
@@ -142,12 +146,12 @@ void Swarm::initStartingPositions() {
 	}
 }
 
-void Swarm::writeSwarmToFile(const std::string &filename) const {
+void Swarm::writeSwarmToFile(const string &filename) const {
 	if(numClasses != 3) return;
 
 	Helpers::spit("b2;b3;obj\n", filename);
 	for(int i=0; i<swarmSize; i++) {
-		Helpers::spitAppend(std::to_string(particles(i,1)) + ";" + std::to_string(particles(i,2)) + ";" + std::to_string(objective(particles.row(i))) + "\n", filename);
+		Helpers::spitAppend(to_string(particles(i,1)) + ";" + to_string(particles(i,2)) + ";" + to_string(objective(particles.row(i))) + "\n", filename);
 	}
 }
 
@@ -162,7 +166,7 @@ void Swarm::initLocalGlobalBests() {
 		}
 	}
 
-	writeSwarmToFile("initialSwarm.txt");
+	//writeSwarmToFile("initialSwarm.txt");
 }
 
 void Swarm::initStartingVelocities() {
