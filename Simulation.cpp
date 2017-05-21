@@ -90,9 +90,8 @@ OptionalPolicy TwoClassSimulation::heuristicPolicy() const {
 
 OptionalPolicy TwoClassSimulation::optimalPolicy() const {	
 	if (customers[0].consumptionPerReq == 1 && customers[1].consumptionPerReq == 1) {
-		vector<int> bookingLimits;
 		double x = (customers[0].revenuePerReq - customers[1].revenuePerReq) / customers[0].revenuePerReq;
-		bookingLimits = { C, C - (int)floor(customers[0].consumptionPerReq * Helpers::invNormal(x, customers[0].expD, customers[0].devD)) };
+		vector<int> bookingLimits = { C, C - (int)floor(Helpers::invNormal(x, customers[0].expD, customers[0].devD)) };
 		return bookingLimits;
 	}
 	return OptionalPolicy();

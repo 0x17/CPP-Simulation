@@ -16,6 +16,8 @@ void testInverseNormal();
 void effectOfDescriptiveSampling();
 
 int main() {
+//	std::rename("FolderName/", "FolderName2/");
+
 	runOptimizers();
 	//testInverseNormal();
 	//effectOfDescriptiveSampling();
