@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <chrono>
 #include <fstream>
+#include <list>
 #include "Stopwatch.h"
 
 namespace Helpers {
@@ -57,6 +58,8 @@ namespace Helpers {
 		void trace(double slvtime, double bks_objval, bool trunc_secs = false);
 		void intervalTrace(double bks_objval);
 	};
+
+	std::list<std::string> extractArguments(int argc, const char **argv);
 };
 
 

@@ -6,6 +6,7 @@
 #include "Stopwatch.h"
 
 #include <boost/math/distributions/normal.hpp>
+#include <boost/format.hpp>
 
 #include <fstream>
 #include <random>
@@ -60,6 +61,15 @@ void Helpers::spitAppend(const string &s, const string &filename) {
 		f << s;
 		f.close();
 	}
+}
+
+std::list<std::string> Helpers::extractArguments(int argc, const char **argv) {
+	list<string> args;
+	for(int i=1; i<argc; i++) {
+		string arg = argv[i];
+		args.push_back(arg);
+	}
+	return args;
 }
 
 namespace Helpers {
