@@ -6,8 +6,8 @@
 
 class Runner {
 public:
-
 	static void commandLine(const std::list<std::string> &args);
+	static void benchmark(const std::string &dir);
 
 };
 

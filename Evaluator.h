@@ -5,7 +5,7 @@
 class AbstractEvaluator : public BookingLimitOptimizer
 {
 public:
-	AbstractEvaluator(AbstractSimulation &_sim) : BookingLimitOptimizer("FullEnumeration", _sim) {}
+	AbstractEvaluator(const AbstractSimulation &_sim) : BookingLimitOptimizer("FullEnumeration", _sim) {}
 	virtual ~AbstractEvaluator() {}
 
 	virtual ResultList collectResults(AbstractSimulation::ScenarioList &scenarios) const = 0;
@@ -18,21 +18,21 @@ public:
 
 class Evaluator2D : public AbstractEvaluator {
 public:
-	explicit Evaluator2D(AbstractSimulation &_sim) : AbstractEvaluator(_sim) {}
+	explicit Evaluator2D(const AbstractSimulation &_sim) : AbstractEvaluator(_sim) {}
 	ResultList collectResults(AbstractSimulation::ScenarioList &scenarios) const override;
 	Result computeOptimum(AbstractSimulation::ScenarioList& scenarios) const override;
 };
 
 class Evaluator3D : public AbstractEvaluator {
 public:
-	explicit Evaluator3D(AbstractSimulation &_sim) : AbstractEvaluator(_sim) {}
+	explicit Evaluator3D(const AbstractSimulation &_sim) : AbstractEvaluator(_sim) {}
 	ResultList collectResults(AbstractSimulation::ScenarioList &scenarios) const override;
 	Result computeOptimum(AbstractSimulation::ScenarioList& scenarios) const override;
 };
 
 class EvaluatorMultiDimensional : public AbstractEvaluator {
 public:
-	explicit EvaluatorMultiDimensional(AbstractSimulation &_sim) : AbstractEvaluator(_sim) {}
+	explicit EvaluatorMultiDimensional(const AbstractSimulation &_sim) : AbstractEvaluator(_sim) {}
 	ResultList collectResults(AbstractSimulation::ScenarioList &scenarios) const override;
 	Result computeOptimum(AbstractSimulation::ScenarioList& scenarios) const override;
 };

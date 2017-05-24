@@ -37,7 +37,7 @@ private:
 	boost::optional<vector<int>> seedSolution;
 };
 
-PSSolver::PSSolver(AbstractSimulation &_sim) : BookingLimitOptimizer("ParticleSwarm", _sim) {}
+PSSolver::PSSolver(const AbstractSimulation &_sim) : BookingLimitOptimizer("ParticleSwarm", _sim) {}
 
 Result PSSolver::solve(vector<vector<int>>& scenarios) {
 	const int	iterlimit = -1,

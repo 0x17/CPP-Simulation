@@ -14,12 +14,25 @@
 #include "Stopwatch.h"
 
 namespace Helpers {
+
+	template<class T>
+	void swap(std::vector<T> &v, int ix1, int ix2) {
+		T tmp = v[ix1];
+		v[ix1] = v[ix2];
+		v[ix2] = tmp;
+	}
+
     std::string slurp(const std::string& filename);
 
 	void resetSeed(int seed);
     double pickNormal(double mean, double stddev);
 	double invNormal(double x, double mean, double stddev);
 	double pickNormalDescriptive(double mean, double stddev, int scenarioIx, int nscenarios);
+
+	std::vector<double> generateNormalDistributionDescriptiveSamplingLUT(int sampleSize, double mean, double stddev);
+
+	double pickNextWithLUT(std::vector<double> &lut, int& drawnCounter);
+	double pickNextWithLUT(std::vector<double> &lut);
 
 	double vecAverage(const std::vector<double> & nums);
 

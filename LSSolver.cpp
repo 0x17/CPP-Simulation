@@ -26,7 +26,7 @@ lsdouble RevenueComputationNativeFunction::call(const LSNativeContext& context) 
 	return obj;
 }
 
-LSOptimizer::LSOptimizer(AbstractSimulation& _sim): BookingLimitOptimizer("LocalSolverNative", _sim), rfunc(_sim), bookingLimits(sim.getNumClasses()) {
+LSOptimizer::LSOptimizer(const AbstractSimulation& _sim): BookingLimitOptimizer("LocalSolverNative", _sim), rfunc(_sim), bookingLimits(sim.getNumClasses()) {
 	LSModel model = ls.getModel();
 
 	obj = model.call(model.createNativeFunction(&rfunc));

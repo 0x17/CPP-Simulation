@@ -72,6 +72,29 @@ std::list<std::string> Helpers::extractArguments(int argc, const char **argv) {
 	return args;
 }
 
+std::vector<double> Helpers::generateNormalDistributionDescriptiveSamplingLUT(int sampleSize, double mean, double stddev) {
+	vector<double> lut((unsigned long) sampleSize);
+	for(int i=0; i<sampleSize; i++) {
+		lut[i] = pickNormalDescriptive(mean, stddev, i, sampleSize);
+	}
+	return lut;
+}
+
+double Helpers::pickNextWithLUT(std::vector<double> &lut, int &drawnCounter) {
+	int sampleSize = static_cast<int>(lut.size());
+	if(drawnCounter > sampleSize) drawnCounter = 0;
+	int ix = Helpers::randRangeIncl(drawnCounter, sampleSize);
+	double pick = lut[ix];
+	Helpers::swap<double>(lut, ix, drawnCounter);
+	drawnCounter++;
+	return pick;
+}
+
+double Helpers::pickNextWithLUT(std::vector<double> &lut) {
+	static int drawnCounter = 0;
+	return pickNextWithLUT(lut, drawnCounter);
+}
+
 namespace Helpers {
 	Tracer::Tracer(const string &filePrefix) : f(filePrefix + ".txt") {
 		sw.start();

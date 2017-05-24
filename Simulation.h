@@ -24,6 +24,8 @@ public:
 	using Scenario = std::vector<int>;
 	using ScenarioList = std::vector<Scenario>;
 
+	using LUTList = std::vector<std::vector<double>>;
+
 	AbstractSimulation(const std::string &dataFilename);
 	virtual ~AbstractSimulation() {}
 
@@ -32,12 +34,12 @@ public:
 		Descriptive
 	};
 
-    Scenario pickDemands(int scenarioIx, int numScenarios, SamplingType stype = SamplingType::Descriptive);
+    Scenario pickDemands(int scenarioIx, int numScenarios, boost::optional<LUTList> &lutList, SamplingType stype = SamplingType::Descriptive);
     ScenarioList generateScenarios(int ntries, int seed, SamplingType stype = SamplingType::Descriptive);
-    std::vector<double> runSimulation(const std::vector<int> &bookingLimits, ScenarioList &scenarios);
-	double averageRevenueOfSimulation(const std::vector<int>& bookingLimits, ScenarioList& scenarios);
+    std::vector<double> runSimulation(const std::vector<int> &bookingLimits, ScenarioList &scenarios) const;
+	double averageRevenueOfSimulation(const std::vector<int>& bookingLimits, ScenarioList& scenarios) const;
 
-	virtual double objective(const std::vector<int> &demands, const std::vector<int> &bookingLimits) = 0;
+	virtual double objective(const std::vector<int> &demands, const std::vector<int> &bookingLimits) const = 0;
 
 	virtual OptionalPolicy optimalPolicy() const = 0;
 	virtual OptionalPolicy heuristicPolicy() const = 0;
@@ -45,7 +47,7 @@ public:
 	int getC() const { return C; }
 	int getNumClasses() const { return (int)customers.size();  }
 
-	Customer &getCustomer(int ix) { return customers[ix];  }
+	Customer getCustomer(int ix) const { return customers[ix];  }
 
 	static std::vector<double> statisticalMeansOfScenarios(ScenarioList &scenarios);
 	static std::vector<double> statisticalStandardDeviationsOfScenarios(ScenarioList &scenarios);
@@ -70,9 +72,9 @@ struct Result {
 using ResultList = std::vector<Result>;
 
 class BookingLimitOptimizer {
-	const bool useHeuristicStart = true;
+	const bool useHeuristicStart = false;
 public:
-	BookingLimitOptimizer(std::string _name, AbstractSimulation &_sim) : sim(_sim), name(_name) {
+	BookingLimitOptimizer(std::string _name, const AbstractSimulation &_sim) : sim(_sim), name(_name) {
 		if (useHeuristicStart) {
 			heuristicBookingLimits = sim.heuristicPolicy();
 		}
@@ -83,7 +85,7 @@ public:
 	std::string getName() const { return name; }
 
 protected:
-	AbstractSimulation &sim;
+	const AbstractSimulation &sim;
 	OptionalPolicy heuristicBookingLimits;
 private:
 	std::string name;
@@ -92,7 +94,7 @@ private:
 class TwoClassSimulation : public AbstractSimulation {
 public:
     TwoClassSimulation(const std::string &dataFilename) : AbstractSimulation(dataFilename) {}
-	virtual double objective(const std::vector<int>& demands, const std::vector<int>& bookingLimits) override;
+	virtual double objective(const std::vector<int>& demands, const std::vector<int>& bookingLimits) const override;
 	OptionalPolicy heuristicPolicy() const override;
 	OptionalPolicy optimalPolicy() const override;
 };
@@ -100,7 +102,7 @@ public:
 class MultiClassSimulation : public AbstractSimulation {
 public:
     MultiClassSimulation(const std::string &dataFilename = "multi_data.json") : AbstractSimulation(dataFilename) {}
-	virtual double objective(const std::vector<int>& demands, const std::vector<int>& bookingLimits) override;
+	virtual double objective(const std::vector<int>& demands, const std::vector<int>& bookingLimits) const override;
 	OptionalPolicy heuristicPolicy() const override;
 	OptionalPolicy optimalPolicy() const override;
 };

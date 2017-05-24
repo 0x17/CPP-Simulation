@@ -22,7 +22,8 @@ int main(int argc, const char **argv) {
 	/*cout << "Press [Return] to quit!" << endl;
 	getchar();*/
 
-	Runner::commandLine(Helpers::extractArguments(argc, argv));
+	//Runner::commandLine(Helpers::extractArguments(argc, argv));
+	Runner::benchmark("Instances");
 
 	return 0;
 }
