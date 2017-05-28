@@ -12,7 +12,7 @@ struct Customer {
     std::string name;
     double expD, devD;
     std::string description;
-    int consumptionPerReq, revenuePerReq;
+    double consumptionPerReq, revenuePerReq;
 
     Customer(const json11::Json &obj);
 };
@@ -34,7 +34,8 @@ public:
 		Descriptive
 	};
 
-    Scenario pickDemands(int scenarioIx, int numScenarios, boost::optional<LUTList> &lutList, SamplingType stype = SamplingType::Descriptive);
+    Scenario pickDemands(int scenarioIx, int numScenarios);
+	Scenario pickDemandsDescriptive(int scenarioIx, int numScenarios, LUTList& lutList);
     ScenarioList generateScenarios(int ntries, int seed, SamplingType stype = SamplingType::Descriptive);
     std::vector<double> runSimulation(const std::vector<int> &bookingLimits, ScenarioList &scenarios) const;
 	double averageRevenueOfSimulation(const std::vector<int>& bookingLimits, ScenarioList& scenarios) const;
@@ -63,7 +64,7 @@ struct Result {
 	double profit;
 
 	Result() : bookingLimits(0), profit(0) {}
-	Result(int nclasses) : bookingLimits(nclasses), profit(0) {}
+	Result(int numClasses) : bookingLimits((unsigned long)numClasses), profit(0) {}
 	Result(const std::vector<int>& booking_limits, double profit) : bookingLimits(booking_limits), profit(profit) {}
 
 	std::string toString() const;
@@ -105,6 +106,7 @@ public:
 	virtual double objective(const std::vector<int>& demands, const std::vector<int>& bookingLimits) const override;
 	OptionalPolicy heuristicPolicy() const override;
 	OptionalPolicy optimalPolicy() const override;
+	double eosConsumption(int j, int u) const;
 };
 
 

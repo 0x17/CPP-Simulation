@@ -1,6 +1,7 @@
 #include "LSSolver.h"
 #include "Simulation.h"
 #include "Helpers.h"
+#include "Globals.h"
 
 using namespace std;
 using namespace localsolver;
@@ -57,7 +58,7 @@ Result LSOptimizer::solve(vector<vector<int>>& scenarios) {
 	rfunc.setScenarios(scenarios);
 
 	auto lsphase = ls.createPhase();
-	lsphase.setTimeLimit(30);
+	lsphase.setTimeLimit(globals::TIME_LIMIT);
 
 	ls.solve();
 

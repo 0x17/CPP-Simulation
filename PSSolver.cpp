@@ -7,6 +7,7 @@
 #include "Matrix.h"
 #include "Helpers.h"
 #include "Stopwatch.h"
+#include "Globals.h"
 
 using namespace std;
 
@@ -41,11 +42,11 @@ PSSolver::PSSolver(const AbstractSimulation &_sim) : BookingLimitOptimizer("Part
 
 Result PSSolver::solve(vector<vector<int>>& scenarios) {
 	const int	iterlimit = -1,
-				timelimit = 30,
 				swarmSize = 20;
+	const double timelimit = globals::TIME_LIMIT;
 
 	auto objective = [&](vector<int> bookingLimits) {
-		return Helpers::vecAverage(sim.runSimulation(bookingLimits, scenarios));
+		return sim.averageRevenueOfSimulation(bookingLimits, scenarios);
 	};
 
 	Swarm s(swarmSize, sim.getNumClasses(), sim.getC(), objective, heuristicBookingLimits);
@@ -53,9 +54,11 @@ Result PSSolver::solve(vector<vector<int>>& scenarios) {
 
 	sw.start();
 	double tstart = sw.look();
-	for (int i = 0; (iterlimit != -1 && i < iterlimit) || (timelimit != -1 && sw.look() - tstart < (double)timelimit * 1000.0); i++) {
+	for (int i = 0; (iterlimit != -1 && i < iterlimit) || (timelimit != -1.0 && sw.look() - tstart < timelimit * 1000.0); i++) {
 		s.update();
+#ifndef __APPLE__
 		cout << "Particle swarm iteration " << i << "\r" << flush;
+#endif
 		//s.writeSwarmToFile("swarmIteration" + to_string(i + 1) + ".txt");
 	}
 

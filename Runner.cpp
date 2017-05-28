@@ -121,7 +121,7 @@ void Runner::benchmark(const string &dir) {
 	for(const string& instanceName : instances) {
 		MultiClassSimulation sim(dir + "/" + instanceName + ".json");
 
-		auto scenarios = sim.generateScenarios(100, 42, AbstractSimulation::SamplingType::Descriptive);
+		auto scenarios = sim.generateScenarios(100, 42, AbstractSimulation::SamplingType::Descriptive);// AbstractSimulation::SamplingType::Random);
 
 		auto solverNameToObject = generateSolverNameToObjectMapping(sim);
 

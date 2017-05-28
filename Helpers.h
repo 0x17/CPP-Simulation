@@ -11,6 +11,7 @@
 #include <chrono>
 #include <fstream>
 #include <list>
+#include <memory>
 #include "Stopwatch.h"
 
 namespace Helpers {
@@ -61,7 +62,7 @@ namespace Helpers {
 	}
 
 	class Tracer {
-		std::ofstream f;
+		std::unique_ptr<std::ofstream> f;
 		std::chrono::time_point<std::chrono::system_clock> lupdate;
 		double last_slvtime;
 		Stopwatch sw;

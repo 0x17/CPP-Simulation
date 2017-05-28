@@ -42,6 +42,15 @@
     <ClInclude Include="PSSolver.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="Experiments.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="Runner.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="Globals.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Helpers.cpp">
@@ -69,6 +78,12 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="PSSolver.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="Experiments.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="Runner.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

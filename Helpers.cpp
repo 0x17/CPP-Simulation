@@ -4,6 +4,7 @@
 
 #include "Helpers.h"
 #include "Stopwatch.h"
+#include "Globals.h"
 
 #include <boost/math/distributions/normal.hpp>
 #include <boost/format.hpp>
@@ -82,8 +83,8 @@ std::vector<double> Helpers::generateNormalDistributionDescriptiveSamplingLUT(in
 
 double Helpers::pickNextWithLUT(std::vector<double> &lut, int &drawnCounter) {
 	int sampleSize = static_cast<int>(lut.size());
-	if(drawnCounter > sampleSize) drawnCounter = 0;
-	int ix = Helpers::randRangeIncl(drawnCounter, sampleSize);
+	if(drawnCounter >= sampleSize) drawnCounter = 0;
+	int ix = Helpers::randRangeIncl(drawnCounter, sampleSize-1);
 	double pick = lut[ix];
 	Helpers::swap<double>(lut, ix, drawnCounter);
 	drawnCounter++;
@@ -96,27 +97,31 @@ double Helpers::pickNextWithLUT(std::vector<double> &lut) {
 }
 
 namespace Helpers {
-	Tracer::Tracer(const string &filePrefix) : f(filePrefix + ".txt") {
+	Tracer::Tracer(const string &filePrefix) {
 		sw.start();
 		lupdate = chrono::system_clock::now();
 		last_slvtime = 0.0;
-		if(!f.is_open())
+		if(!globals::TRACING_ENABLED) return;
+		f = std::make_unique<std::ofstream>(filePrefix + ".txt");
+		if(!f->is_open())
 			throw runtime_error("Unable to create " + filePrefix + ".txt!");
-		f << "slvtime;bks_objval\n";
+		(*f) << "slvtime;bks_objval\n";
 		trace(0.0, 0.0f);
 	}
 
 	Tracer::~Tracer() {
-		f.close();
+		if(globals::TRACING_ENABLED) f->close();
 	}
 
 	void Tracer::trace(double slvtime, double bks_objval, bool trunc_secs) {
+		if(!globals::TRACING_ENABLED) return;
 		double insecs = (slvtime / 1000.0);
 		if (trunc_secs) insecs = trunc(insecs);
-		f << (boost::format("%.2f") % insecs) << ";" << bks_objval << endl;
+		(*f) << (boost::format("%.2f") % insecs) << ";" << bks_objval << endl;
 	}
 
 	void Tracer::intervalTrace(double bks_objval) {
+		if(!globals::TRACING_ENABLED) return;
 		double slvtime = sw.look();
 		double deltat = chrono::duration<double, milli>(chrono::system_clock::now() - lupdate).count();
 		if(slvtime < 1000.0 && deltat >= MSECS_BETWEEN_TRACES_SHORT) {

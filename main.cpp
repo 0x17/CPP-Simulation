@@ -55,6 +55,7 @@ void runOptimizers() {
 	for(auto res : results) {
 		cout << endl << res.first << " results:" << endl;
 		cout << res.second.toString() << endl << endl;
+		cout << "Comparison objective: " << sim.averageRevenueOfSimulation(res.second.bookingLimits, scenarios) << endl;
 	}
 }
 

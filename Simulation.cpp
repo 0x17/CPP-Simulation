@@ -4,10 +4,12 @@
 
 #include <algorithm>
 #include <cmath>
+#include <boost/math/special_functions.hpp>
 #include "json11.hpp"
 
 #include "Simulation.h"
 #include "Helpers.h"
+#include "Globals.h"
 
 using namespace std;
 
@@ -76,7 +78,7 @@ vector<double> AbstractSimulation::statisticalStandardDeviationsOfScenarios(Scen
 }
 
 double TwoClassSimulation::objective(const vector<int>& demands, const vector<int>& bookingLimits) const {
-	int n2 = (int)floor(min(bookingLimits[1], demands[1] * customers[1].consumptionPerReq) / customers[1].consumptionPerReq);
+	int n2 = (int)floor(min((double)bookingLimits[1], demands[1] * customers[1].consumptionPerReq) / customers[1].consumptionPerReq);
 	int n1 = (int)floor(min(demands[0] * customers[0].consumptionPerReq, C - n2 * customers[1].consumptionPerReq));
 	return n1 * customers[0].revenuePerReq + n2 * customers[1].revenuePerReq;
 }
@@ -84,7 +86,7 @@ double TwoClassSimulation::objective(const vector<int>& demands, const vector<in
 OptionalPolicy TwoClassSimulation::heuristicPolicy() const {
 	vector<int> bookingLimits(2);
 	bookingLimits[0] = (int)floor(min(customers[0].expD * customers[0].consumptionPerReq, (double)C) / customers[0].consumptionPerReq);
-	bookingLimits[1] = (int)floor(min(customers[1].expD * customers[1].consumptionPerReq, (double)(C-bookingLimits[0]*customers[0].consumptionPerReq)) / customers[1].consumptionPerReq);
+	bookingLimits[1] = (int)floor(min(customers[1].expD * customers[1].consumptionPerReq, (C-bookingLimits[0]*customers[0].consumptionPerReq)) / customers[1].consumptionPerReq);
 	return bookingLimits;
 }
 
@@ -98,12 +100,12 @@ OptionalPolicy TwoClassSimulation::optimalPolicy() const {
 }
 
 double MultiClassSimulation::objective(const vector<int>& demands, const vector<int>& bookingLimits) const {
-	int residualCapacity = C;
-	double profit = 0.0;
+	double	residualCapacity = C,
+			profit = 0.0;
 
 	for(int ix = numClasses - 1; ix >= 0; ix--) {
 		int n = min(demands[ix], (int)floor((bookingLimits[ix] - (C - residualCapacity)) / customers[ix].consumptionPerReq));
-		residualCapacity -= n * customers[ix].consumptionPerReq;
+		residualCapacity -= n * eosConsumption(ix, n);
 		profit += n * customers[ix].revenuePerReq;
 	}
 
@@ -111,7 +113,7 @@ double MultiClassSimulation::objective(const vector<int>& demands, const vector<
 }
 
 OptionalPolicy MultiClassSimulation::heuristicPolicy() const {
-	vector<int> bookingLimits(numClasses);
+	vector<int> bookingLimits((unsigned long)numClasses);
 	bookingLimits[0] = C;	
 	for(int j=1; j<numClasses; j++) {
 		bookingLimits[j] = (int)floor( min(customers[j].expD * customers[j].consumptionPerReq, (double)bookingLimits[j-1]) );
@@ -123,11 +125,31 @@ OptionalPolicy MultiClassSimulation::optimalPolicy() const {
 	return OptionalPolicy();
 }
 
-AbstractSimulation::Scenario AbstractSimulation::pickDemands(int scenarioIx, int numScenarios, boost::optional<LUTList> &lutList, SamplingType stype) {
+double MultiClassSimulation::eosConsumption(int j, int u) const {
+	if(globals::ECONOMY_OF_SCALE_ENABLED) {
+		double deltaX = customers[j].expD;
+		double deltaY = customers[j].consumptionPerReq * 0.2;
+		return max(1.0, customers[j].consumptionPerReq - (boost::math::erf(4 * u / deltaX - 2) * deltaY / 2.0 + deltaY / 2.0));
+	} else {
+		return customers[j].consumptionPerReq;
+	}
+}
+
+AbstractSimulation::Scenario AbstractSimulation::pickDemands(int scenarioIx, int numScenarios) {
+	Scenario demands((unsigned long)numClasses);
+	int customerIx = 0;
+	for(Customer &c : customers) {
+		double samplingResult = Helpers::pickNormal(c.expD, c.devD);
+		demands[customerIx++] = max(0, (int)round(samplingResult));
+	}
+	return demands;
+}
+
+AbstractSimulation::Scenario AbstractSimulation::pickDemandsDescriptive(int scenarioIx, int numScenarios, LUTList &lutList) {
     Scenario demands((unsigned long)numClasses);
     int customerIx = 0;
     for(Customer &c : customers) {
-		double samplingResult = (stype == SamplingType::Descriptive) ? Helpers::pickNextWithLUT(lutList.get()[customerIx]) : Helpers::pickNormal(c.expD, c.devD);
+		double samplingResult = Helpers::pickNextWithLUT(lutList[customerIx]);
 		demands[customerIx++] = max(0, (int)round(samplingResult));
     }
     return demands;
@@ -135,21 +157,23 @@ AbstractSimulation::Scenario AbstractSimulation::pickDemands(int scenarioIx, int
 
 AbstractSimulation::ScenarioList AbstractSimulation::generateScenarios(int ntries, int seed, SamplingType stype) {
 	Helpers::resetSeed(seed);
-	LUTList lookupTables(customers.size());
 
-	boost::optional<LUTList> lutlst;
+	ScenarioList scenarios((unsigned long) ntries);
 
 	if(stype == SamplingType::Descriptive) {
+		LUTList lookupTables(customers.size());
 		for (int i = 0; i < customers.size(); i++) {
 			lookupTables[i] = Helpers::generateNormalDistributionDescriptiveSamplingLUT(ntries, customers[i].expD, customers[i].devD);
 		}
-		lutlst = lookupTables;
+		for(int i=0; i<ntries; i++) {
+			scenarios[i] = pickDemandsDescriptive(i, ntries, lookupTables);
+		}
+	} else {
+		for(int i=0; i<ntries; i++) {
+			scenarios[i] = pickDemands(i, ntries);
+		}
 	}
 
-    ScenarioList scenarios((unsigned long) ntries);
-    for(int i=0; i<ntries; i++) {
-        scenarios[i] = pickDemands(i, ntries, lutlst, stype);
-    }
     return scenarios;
 }
 
@@ -158,6 +182,6 @@ Customer::Customer(const json11::Json &obj) :
         expD(obj["expD"].number_value()),
         devD(obj["devD"].number_value()),
         description(obj["description"].string_value()),
-        consumptionPerReq(obj["consumptionPerReq"].int_value()),
-        revenuePerReq(obj["revenuePerReq"].int_value())
+        consumptionPerReq(obj["consumptionPerReq"].number_value()),
+        revenuePerReq(obj["revenuePerReq"].number_value())
 {}

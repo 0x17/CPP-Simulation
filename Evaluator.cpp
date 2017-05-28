@@ -5,6 +5,7 @@
 #include "Simulation.h"
 #include "Helpers.h"
 #include "Stopwatch.h"
+#include "Globals.h"
 
 using namespace std;
 
@@ -104,7 +105,7 @@ ResultList EvaluatorMultiDimensional::collectResults(AbstractSimulation::Scenari
 	vector<int> bookingLimits(sim.getNumClasses());
 	Helpers::Tracer tr("FullEnumerationTrace");
 	Stopwatch sw;
-	const int timelimit = 30;
+	const int timelimit = 15;
 
 	resultList[0].profit = numeric_limits<double>::lowest();
 
@@ -144,7 +145,7 @@ Result EvaluatorMultiDimensional::computeOptimum(AbstractSimulation::ScenarioLis
 	vector<int> bookingLimits(sim.getNumClasses());
 	Helpers::Tracer tr("FullEnumerationTrace");
 	Stopwatch sw;
-	const int timelimit = 30;
+	const double timelimit = globals::TIME_LIMIT;
 
 	bookingLimits[0] = sim.getC();
 
@@ -152,7 +153,7 @@ Result EvaluatorMultiDimensional::computeOptimum(AbstractSimulation::ScenarioLis
 	double tstart = sw.look();
 
 	function<void(int)> recursiveCollector = [&](int classIndex) {
-		if (timelimit != -1 && sw.look() - tstart >= (double)timelimit * 1000.0)
+		if (timelimit != -1.0 && sw.look() - tstart >= timelimit * 1000.0)
 			return;
 
 		if (classIndex == bookingLimits.size()) {
