@@ -57,8 +57,6 @@ Config processArguments(const list<string> &args) {
 	return { instanceName, solverName, stoi(numScenarios) };
 }
 
-std::array<string, 4> solverNames = { "Gurobi", "LocalSolver", "ParticleSwarm", "FullEnumeration" };
-
 map<string, function<BookingLimitOptimizer*()>> generateSolverNameToObjectMapping(const AbstractSimulation &sim) {
 	return {
 			{ "Gurobi", [&sim]() { return new GurobiOptimizer(sim); }},
@@ -96,6 +94,9 @@ list<string> instancesInDirectory(const string &dir) {
 }
 
 void Runner::benchmark(const string &dir) {
+	static std::array<string, 1> solverNames = { "Gurobi" };
+	//static std::array<string, 4> solverNames = { "Gurobi", "LocalSolver", "ParticleSwarm", "FullEnumeration" };
+
 	static auto constructBookingLimitsCaption = [](int numClasses) {
 		vector<string> bookingLimitStrs((unsigned long) numClasses);
 		for(int i=0; i<numClasses; i++)
@@ -121,7 +122,7 @@ void Runner::benchmark(const string &dir) {
 	for(const string& instanceName : instances) {
 		MultiClassSimulation sim(dir + "/" + instanceName + ".json");
 
-		auto scenarios = sim.generateScenarios(100, 42, AbstractSimulation::SamplingType::Descriptive);// AbstractSimulation::SamplingType::Random);
+		auto scenarios = sim.generateScenarios(150, 42, AbstractSimulation::SamplingType::Descriptive);// AbstractSimulation::SamplingType::Random);
 
 		auto solverNameToObject = generateSolverNameToObjectMapping(sim);
 

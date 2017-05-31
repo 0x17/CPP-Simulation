@@ -1,5 +1,6 @@
 import os
 
+TIME_LIMIT = 30
 
 def last_value_up_to(x, pairs):
     val = -1
@@ -44,7 +45,7 @@ for trace_file in trace_files:
                 last_obj = obj
                 last_t = t
 
-trange = [round(i * 0.01, 2) for i in range(100)] + [i + 1 for i in range(30)]
+trange = [round(i * 0.01, 2) for i in range(100)] + [i + 1 for i in range(TIME_LIMIT)]
 merged_results = {t: [last_value_up_to(t, results_for_tfile[trace_file]) for trace_file in trace_files] for t in trange}
 
 with open('mergedtraces.txt', 'w') as fp:

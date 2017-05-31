@@ -22,8 +22,8 @@ int main(int argc, const char **argv) {
 	/*cout << "Press [Return] to quit!" << endl;
 	getchar();*/
 
-	//Runner::commandLine(Helpers::extractArguments(argc, argv));
-	Runner::benchmark("Instances");
+	Runner::commandLine(Helpers::extractArguments(argc, argv));
+	//Runner::benchmark("Instances");
 
 	return 0;
 }
@@ -35,6 +35,8 @@ void runOptimizers() {
 
 	//MultiClassSimulation sim("multi_data_big.json");
 	MultiClassSimulation sim("multi_data.json");
+	//MultiClassSimulation sim("vonfolie.json");
+	//MultiClassSimulation sim("Instances/pinstance1.json");
 
 	EvaluatorMultiDimensional evl(sim);
 	LSOptimizer ls(sim);
@@ -42,7 +44,7 @@ void runOptimizers() {
 	PSSolver ps(sim);
 
 	vector<BookingLimitOptimizer *> optimizers = {  &evl, &ls, &gurobi, &ps };
-	//vector<BookingLimitOptimizer *> optimizers = { &ls };
+	//vector<BookingLimitOptimizer *> optimizers = { &gurobi };
 
 	auto scenarios = sim.generateScenarios(ntries, 42, AbstractSimulation::SamplingType::Descriptive);
 

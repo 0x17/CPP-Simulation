@@ -104,10 +104,27 @@ double MultiClassSimulation::objective(const vector<int>& demands, const vector<
 			profit = 0.0;
 
 	for(int ix = numClasses - 1; ix >= 0; ix--) {
-		int n = min(demands[ix], (int)floor((bookingLimits[ix] - (C - residualCapacity)) / customers[ix].consumptionPerReq));
-		residualCapacity -= n * eosConsumption(ix, n);
+		int n;
+		if (globals::ECONOMY_OF_SCALE_ENABLED) {
+			double blCapacityLeft = (bookingLimits[ix] - (C - residualCapacity));
+			int fittingInBL = 0;
+			for (int k = 1; k <= ceil(blCapacityLeft); k++) {
+				if (k * eosConsumption(ix, k) <= blCapacityLeft)
+					fittingInBL = k;
+			}
+			n = min(demands[ix], fittingInBL);
+			residualCapacity -= n * eosConsumption(ix, n);
+			//cout << "n" << ix << "=" << n << endl;
+		}
+		else {
+			n = min(demands[ix], (int)floor((bookingLimits[ix] - (C - residualCapacity)) / customers[ix].consumptionPerReq));
+			residualCapacity -= n * customers[ix].consumptionPerReq;
+		}
+
 		profit += n * customers[ix].revenuePerReq;
 	}
+
+	//cout << "Profit == " << profit << endl;
 
 	return profit;
 }
@@ -126,13 +143,9 @@ OptionalPolicy MultiClassSimulation::optimalPolicy() const {
 }
 
 double MultiClassSimulation::eosConsumption(int j, int u) const {
-	if(globals::ECONOMY_OF_SCALE_ENABLED) {
-		double deltaX = customers[j].expD;
-		double deltaY = customers[j].consumptionPerReq * 0.2;
-		return max(1.0, customers[j].consumptionPerReq - (boost::math::erf(4 * u / deltaX - 2) * deltaY / 2.0 + deltaY / 2.0));
-	} else {
-		return customers[j].consumptionPerReq;
-	}
+	double deltaX = customers[j].expD;
+	double deltaY = customers[j].consumptionPerReq * 0.2;
+	return max(1.0, customers[j].consumptionPerReq - (boost::math::erf(4 * u / deltaX - 2) * deltaY / 2.0 + deltaY / 2.0));
 }
 
 AbstractSimulation::Scenario AbstractSimulation::pickDemands(int scenarioIx, int numScenarios) {
