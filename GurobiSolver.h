@@ -9,7 +9,6 @@ public:
 	Result solve(const ScenarioList& scenarios) override;
 
 private:
-	Result solveWithEconomiesOfScale(const ScenarioList &scenarios);
-	Result solveWithNewFormulation(const ScenarioList &scenarios);
-	Result solveWithOldFormulation(const ScenarioList &scenarios);
+	template<class Func>
+	Result solveCommon(const ScenarioList &scenarios, Func modelBuilder);
 };

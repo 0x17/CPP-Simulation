@@ -29,24 +29,19 @@ void CustomCallback::callback() {
 	}
 }
 
+vector<GRBVar> modelBuilderForOldFormulation(const AbstractSimulation &sim, GRBModel &model, const ScenarioList &scenarios);
+vector<GRBVar> modelBuilderForNewFormulation(const AbstractSimulation &sim, GRBModel &model, const ScenarioList &scenarios);
+vector<GRBVar> modelBuilderForEconomiesOfScale(const AbstractSimulation &sim, GRBModel &model, const ScenarioList &scenarios);
+
 Result GurobiOptimizer::solve(const ScenarioList& scenarios) {
 	return !globals::ECONOMY_OF_SCALE_ENABLED ?
-		//solveWithOldFormulation(scenarios) :
-		solveWithNewFormulation(scenarios) :
-		solveWithEconomiesOfScale(scenarios);
+		//solveCommon(scenarios, modelBuilderForOldFormulation) :
+		solveCommon(scenarios, modelBuilderForNewFormulation) :
+		solveCommon(scenarios, modelBuilderForEconomiesOfScale);
 }
 
-Result GurobiOptimizer::solveWithOldFormulation(const ScenarioList &scenarios) {
-	CustomCallback callback;
-	Result res;
-
-	int J = sim.getNumClasses(),
-		C = sim.getC(),
-		S = (int)scenarios.getM();
-
-	auto cj = [&](int j) { return sim.getCustomer(j).consumptionPerReq; };
-	auto rj = [&](int j) { return sim.getCustomer(j).revenuePerReq; };
-
+template<class Func>
+Result GurobiOptimizer::solveCommon(const ScenarioList &scenarios, Func modelBuilder) {
 	GRBEnv env;
 	env.set(GRB_DoubleParam_MIPGap, 0.0);
 	env.set(GRB_DoubleParam_TimeLimit, /*GRB_INFINITY*/ globals::TIME_LIMIT);
@@ -54,51 +49,26 @@ Result GurobiOptimizer::solveWithOldFormulation(const ScenarioList &scenarios) {
 
 	GRBModel model(env);
 
-	vector<GRBVar> bcj = Helpers::constructVector<GRBVar>(J, [&](int j) { return model.addVar(j == 0 ? C : 0, C, 0.0, GRB_INTEGER, "bcj" + to_string(j)); });
-	Matrix<GRBVar> njs(J, S, [&](int j, int s) { return model.addVar(0, std::floor((double)C / (double)cj(j)), 0.0, GRB_CONTINUOUS, "njs" + to_string(j) + "," + to_string(s)); });
-	Matrix<GRBVar> rcapjs(J, S, [&](int j, int s) { return model.addVar(0, C, 0.0, GRB_CONTINUOUS, "rcapjs" + to_string(j) + "," + to_string(s)); });
-	Matrix<GRBVar> kjs(J, S, [&](int j, int s) { return model.addVar(0, std::floor((double)C / (double)cj(j)), 0.0, GRB_INTEGER, "kjs" + to_string(j) + "," + to_string(s)); });
+	vector<GRBVar> bcj = modelBuilder(sim, model, scenarios);
 
-	if(heuristicBookingLimits) {
-		for(int j=0; j<J; j++) {
+	if (heuristicBookingLimits) {
+		for (int j = 0; j<scenarios.getN(); j++) {
 			bcj[j].set(GRB_DoubleAttr_Start, (*heuristicBookingLimits)[j]);
 		}
 	}
 
-	GRBLinExpr revSum = 0.0;
-	for (int j = 0; j < J; j++)
-		for (int s = 0; s < S; s++)
-			revSum += njs(j, s) * (double)rj(j);
-
-	model.setObjective(1.0 / (double)S * revSum, GRB_MAXIMIZE);
-
-	for (int j = 0; j < J; j++) {
-		if (j + 1 < J)
-			model.addConstr(bcj[j] >= bcj[j + 1]);
-
-		for (int s = 0; s < S; s++) {
-			model.addConstr(kjs(j, s) * cj(j) <= rcapjs(j, s));
-			model.addConstr((kjs(j, s) + 1) * cj(j) >= rcapjs(j, s) + globals::EPSILON);
-			//model.addConstr(kjs(j, s) * cj(j) >= rcapjs(j, s) - cj(j) + globals::EPSILON);
-
-			GRBLinExpr previouslyUtilizedCap = 0.0;
-			for (int i = j + 1; i < J; i++)
-				previouslyUtilizedCap += njs(i, s) * cj(i);
-			model.addConstr(rcapjs(j, s) == (bcj[j] - previouslyUtilizedCap));
-
-			GRBVar kjsarr[] = { kjs(j,s) };
-			model.addGenConstrMin(njs(j, s), kjsarr, 1, scenarios(s,j));
-		}
-	}
+	CustomCallback callback;
 
 	model.update();
 	model.setCallback(&callback);
+
+	Result res;
 
 	try {
 		model.optimize();
 
 		res.profit = model.get(GRB_DoubleAttr_ObjVal);
-		res.bookingLimits = Helpers::constructVector<int>(J, [&](int j) { return (int)round(bcj[j].get(GRB_DoubleAttr_X)); });;
+		res.bookingLimits = Helpers::constructVector<int>(scenarios.getN(), [&](int j) { return (int)round(bcj[j].get(GRB_DoubleAttr_X)); });;
 
 		cout << "Optimality: " << (model.get(GRB_IntAttr_Status) == GRB_OPTIMAL) << endl;
 
@@ -166,27 +136,51 @@ GRBLinExpr sum3D(int ub1, int ub2, int ub3, Func f) {
 	return result;
 }
 
-Result GurobiOptimizer::solveWithEconomiesOfScale(const ScenarioList &scenarios) {
-	CustomCallback callback;
-	Result res;
-
+vector<GRBVar> modelBuilderForOldFormulation(const AbstractSimulation &sim, GRBModel &model, const ScenarioList &scenarios) {
 	int J = sim.getNumClasses(),
-			C = sim.getC(),
-			S = scenarios.getM(),
-			U = C + 1;
+		C = sim.getC(),
+		S = scenarios.getM();
+
+	auto cj = [&](int j) { return sim.getCustomer(j).consumptionPerReq; };
+	auto rj = [&](int j) { return sim.getCustomer(j).revenuePerReq; };
+
+	vector<GRBVar> bcj = Helpers::constructVector<GRBVar>(J, [&](int j) { return model.addVar(j == 0 ? C : 0, C, 0.0, GRB_INTEGER, "bcj" + to_string(j)); });
+	Matrix<GRBVar> njs(J, S, [&](int j, int s) { return model.addVar(0, std::floor((double)C / (double)cj(j)), 0.0, GRB_CONTINUOUS, "njs" + to_string(j) + "," + to_string(s)); });
+	Matrix<GRBVar> rcapjs(J, S, [&](int j, int s) { return model.addVar(0, C, 0.0, GRB_CONTINUOUS, "rcapjs" + to_string(j) + "," + to_string(s)); });
+	Matrix<GRBVar> kjs(J, S, [&](int j, int s) { return model.addVar(0, std::floor((double)C / (double)cj(j)), 0.0, GRB_INTEGER, "kjs" + to_string(j) + "," + to_string(s)); });
+
+	model.setObjective(1.0 / (double)S * sum2D(J, S, [&](int j, int s) {  return njs(j, s) * (double)rj(j); }), GRB_MAXIMIZE);
+
+	for (int j = 0; j < J; j++) {
+		if (j + 1 < J)
+			model.addConstr(bcj[j] >= bcj[j + 1]);
+
+		for (int s = 0; s < S; s++) {
+			model.addConstr(kjs(j, s) * cj(j) <= rcapjs(j, s));
+			model.addConstr((kjs(j, s) + 1) * cj(j) >= rcapjs(j, s) + globals::EPSILON);
+			//model.addConstr(kjs(j, s) * cj(j) >= rcapjs(j, s) - cj(j) + globals::EPSILON);
+
+			model.addConstr(rcapjs(j, s) == (bcj[j] - sum(j + 1, J, [&](int i) { return njs(i, s) * cj(i); })));
+
+			GRBVar kjsarr[] = { kjs(j,s) };
+			model.addGenConstrMin(njs(j, s), kjsarr, 1, scenarios(s, j));
+		}
+	}
+
+	return bcj;
+}
+
+vector<GRBVar> modelBuilderForEconomiesOfScale(const AbstractSimulation &sim, GRBModel &model, const ScenarioList &scenarios) {
+	int J = sim.getNumClasses(),
+		C = sim.getC(),
+		S = scenarios.getM(),
+		U = C + 1;
 
 	auto rj = [&](int j) { return sim.getCustomer(j).revenuePerReq; };
 
 	auto cju = [&](int j, int u) {
 		return ((MultiClassSimulation *)&sim)->eosConsumption(j, u);
 	};
-
-	GRBEnv env;
-	env.set(GRB_DoubleParam_MIPGap, 0.0);
-	env.set(GRB_DoubleParam_TimeLimit, /*GRB_INFINITY*/ globals::TIME_LIMIT);
-	env.set(GRB_IntParam_Threads, 1);
-
-	GRBModel model(env);
 
 	vector<GRBVar> bcj = Helpers::constructVector<GRBVar>(J, [&](int j) { return model.addVar(j == 0 ? C : 0, C, 0.0, GRB_INTEGER, "bcj" + to_string(j)); });
 
@@ -209,12 +203,6 @@ Result GurobiOptimizer::solveWithEconomiesOfScale(const ScenarioList &scenarios)
 	Matrix<GRBVar> njs(J, S, [&](int j, int s) { return model.addVar(0, C, 0.0, GRB_INTEGER, "njs" + to_string(j) + "," + to_string(s)); });
 	Matrix<GRBVar> nbjs(J, S, [&](int j, int s) { return model.addVar(0, C, 0.0, GRB_INTEGER, "nbjs" + to_string(j) + "," + to_string(s)); });
 
-	if(heuristicBookingLimits) {
-		for(int j=0; j<J; j++) {
-			bcj[j].set(GRB_DoubleAttr_Start, (*heuristicBookingLimits)[j]);
-		}
-	}
-
 	//model.setObjective(1.0 / (double)S * sum3D(J, S ,U, [&](int j, int s, int u) {  return njsu[j](s, u) * u * rj(j); }), GRB_MAXIMIZE);
 	model.setObjective(1.0 / (double)S * sum2D(J, S, [&](int j, int s) {  return njs(j, s) * rj(j); }), GRB_MAXIMIZE);
 
@@ -229,55 +217,26 @@ Result GurobiOptimizer::solveWithEconomiesOfScale(const ScenarioList &scenarios)
 			model.addConstr(sum(U, [&](int u) { return njsu[j](s, u) * u; }) == njs(j, s));
 			model.addConstr(sum(U, [&](int u) { return nbjsu[j](s, u) * u; }) == nbjs(j, s));
 
-			GRBVar nbjsarr[] = { nbjs(j,s ) };
-			model.addGenConstrMin(njs(j, s), nbjsarr, 1, scenarios(s,j));
+			GRBVar nbjsarr[] = { nbjs(j,s) };
+			model.addGenConstrMin(njs(j, s), nbjsarr, 1, scenarios(s, j));
 
-			model.addConstr(sum2D(j+1, J, 0, U, [&](int i, int u) { return njsu[i](s,u) * u * cju(i,u); }) + sum(U, [&](int u) { return nbjsu[j](s,u) * u * cju(j,u); }) <= bcj[j]);
-			model.addConstr(sum2D(j+1, J, 0, U, [&](int i, int u) { return njsu[i](s,u) * u * cju(i,u); }) + sum(U, [&](int u) { return nbjsu[j](s,u) * (u+1) * cju(j,u+1); }) >= bcj[j] + globals::EPSILON2);
+			model.addConstr(sum2D(j + 1, J, 0, U, [&](int i, int u) { return njsu[i](s, u) * u * cju(i, u); }) + sum(U, [&](int u) { return nbjsu[j](s, u) * u * cju(j, u); }) <= bcj[j]);
+			model.addConstr(sum2D(j + 1, J, 0, U, [&](int i, int u) { return njsu[i](s, u) * u * cju(i, u); }) + sum(U, [&](int u) { return nbjsu[j](s, u) * (u + 1) * cju(j, u + 1); }) >= bcj[j] + globals::EPSILON2);
 		}
 	}
 
 	//cout << "EPISLON2: " << globals::EPSILON2 << endl;
 
-	model.update();
-	model.setCallback(&callback);
-
-	try {
-		model.optimize();
-
-		res.profit = model.get(GRB_DoubleAttr_ObjVal);
-		res.bookingLimits = Helpers::constructVector<int>(J, [&](int j) { return (int)round(bcj[j].get(GRB_DoubleAttr_X)); });;
-
-		cout << "Optimality: " << (model.get(GRB_IntAttr_Status) == GRB_OPTIMAL) << endl;
-
-		double secondsElapsed = model.get(GRB_DoubleAttr_Runtime);
-		//Helpers::spitAppend(to_string(S) + ";" + to_string(secondsElapsed) + "\n", "solvetimeforntries.txt");
-	}
-	catch (GRBException e) {
-		cout << "Error code = " << e.getErrorCode() << endl;
-		cout << e.getMessage() << endl;
-	}
-
-	return res;
+	return bcj;
 }
 
-Result GurobiOptimizer::solveWithNewFormulation(const ScenarioList &scenarios) {
-	CustomCallback callback;
-	Result res;
-
+vector<GRBVar> modelBuilderForNewFormulation(const AbstractSimulation &sim, GRBModel &model, const ScenarioList &scenarios) {
 	int J = sim.getNumClasses(),
 			C = sim.getC(),
 			S = scenarios.getM();
 
 	auto cj = [&](int j) { return sim.getCustomer(j).consumptionPerReq; };
 	auto rj = [&](int j) { return sim.getCustomer(j).revenuePerReq; };
-
-	GRBEnv env;
-	env.set(GRB_DoubleParam_MIPGap, 0.0);
-	env.set(GRB_DoubleParam_TimeLimit, /*GRB_INFINITY*/ globals::TIME_LIMIT);
-	env.set(GRB_IntParam_Threads, 1);
-
-	GRBModel model(env);
 
 	vector<GRBVar> bcj = Helpers::constructVector<GRBVar>(J, [&](int j) { return model.addVar(j == 0 ? C : 0, C, 0.0, GRB_INTEGER, "bcj" + to_string(j)); });
 
@@ -290,12 +249,6 @@ Result GurobiOptimizer::solveWithNewFormulation(const ScenarioList &scenarios) {
 		string caption = "nbjs" + to_string(j) + "," + to_string(s);
 		return model.addVar(0.0, C, 0.0, GRB_INTEGER, caption.c_str());
 	});
-
-	if(heuristicBookingLimits) {
-		for(int j=0; j<J; j++) {
-			bcj[j].set(GRB_DoubleAttr_Start, (*heuristicBookingLimits)[j]);
-		}
-	}
 
 	model.setObjective(1.0 / (double)S * sum2D(J, S, [&](int j, int s) {  return njs(j, s) * rj(j); }), GRB_MAXIMIZE);
 
@@ -312,24 +265,5 @@ Result GurobiOptimizer::solveWithNewFormulation(const ScenarioList &scenarios) {
 		}
 	}
 
-	model.update();
-	model.setCallback(&callback);
-
-	try {
-		model.optimize();
-
-		res.profit = model.get(GRB_DoubleAttr_ObjVal);
-		res.bookingLimits = Helpers::constructVector<int>(J, [&](int j) { return (int)round(bcj[j].get(GRB_DoubleAttr_X)); });;
-
-		cout << "Optimality: " << (model.get(GRB_IntAttr_Status) == GRB_OPTIMAL) << endl;
-
-		double secondsElapsed = model.get(GRB_DoubleAttr_Runtime);
-		//Helpers::spitAppend(to_string(S) + ";" + to_string(secondsElapsed) + "\n", "solvetimeforntries.txt");
-	}
-	catch (GRBException e) {
-		cout << "Error code = " << e.getErrorCode() << endl;
-		cout << e.getMessage() << endl;
-	}
-
-	return res;
+	return bcj;
 }
