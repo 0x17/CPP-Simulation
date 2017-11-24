@@ -4,7 +4,7 @@
 
 class PSSolver : public BookingLimitOptimizer {
 public:	
-	PSSolver(const AbstractSimulation &_sim);
-	Result solve(std::vector<std::vector<int>>& scenarios) override;
+	explicit PSSolver(const AbstractSimulation &_sim);
+	Result solve(const ScenarioList& scenarios) override;
 };
 

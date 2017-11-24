@@ -13,6 +13,11 @@
 #include <cmath>
 using namespace std;
 
+enum class SolutionMethod {
+	FullEnumeration = 0,
+	Gurobi
+};
+
 void Experiments::effectOfDescriptiveSampling() {
 	auto dot2comma = [](string s) {
 		return boost::algorithm::replace_all_copy(s, ".", ",");
@@ -34,10 +39,7 @@ void Experiments::effectOfDescriptiveSampling() {
 	Helpers::spit("diffMeanRand;diffMeanDescr;diffStdDevRand;diffStdDevDescr\n", "diffmeans.txt");
 	Helpers::spit("ntries;solvetime\n", "solvetimeforntries.txt");
 
-	enum class SolutionMethod {
-		FullEnumeration,
-		Gurobi
-	};
+
 
 	SolutionMethod method = SolutionMethod::Gurobi;
 
@@ -49,7 +51,6 @@ void Experiments::effectOfDescriptiveSampling() {
 
 		Result resRand, resDescr;
 		switch(method) {
-		default:
 		case SolutionMethod::FullEnumeration:
 			resRand = evl.solve(scenariosRand);
 			resDescr = evl.solve(scenariosDescr);

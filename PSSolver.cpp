@@ -13,7 +13,7 @@ using namespace std;
 
 class Swarm {
 public:
-	Swarm(int _swarmSize, int _numClasses, int _C, function<double(vector<int>)> _objective, boost::optional<vector<int>> seedSolution);	
+	Swarm(int _swarmSize, int _numClasses, int _C, function<double(vector<int>)> _objective, boost::optional<vector<int>> _seedSolution);
 	void update();
 	Result getBestResult() const;
 
@@ -40,7 +40,7 @@ private:
 
 PSSolver::PSSolver(const AbstractSimulation &_sim) : BookingLimitOptimizer("ParticleSwarm", _sim) {}
 
-Result PSSolver::solve(vector<vector<int>>& scenarios) {
+Result PSSolver::solve(const ScenarioList& scenarios) {
 	const int	iterlimit = -1,
 				swarmSize = 20;
 	const double timelimit = globals::TIME_LIMIT;
@@ -72,9 +72,9 @@ Swarm::Swarm(int _swarmSize, int _numClasses, int _C, function<double(vector<int
 	particles(swarmSize, _numClasses),
 	personalBests(swarmSize, _numClasses),
 	velocities(swarmSize, _numClasses),
-	personalBestObjectives(_swarmSize),
+	personalBestObjectives(static_cast<unsigned long>(_swarmSize)),
 	globalBestObjective(numeric_limits<double>::lowest()),
-	globalBest(_numClasses),
+	globalBest(static_cast<unsigned long>(_numClasses)),
 	objective(_objective),
 	seedSolution(_seedSolution) {
 

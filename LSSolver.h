@@ -7,22 +7,23 @@
 class RevenueComputationNativeFunction : public localsolver::LSNativeFunction {
 public:
 	RevenueComputationNativeFunction(const AbstractSimulation &_sim) : sim(_sim), scenarios(emptyScenarios) {}
-	RevenueComputationNativeFunction(const AbstractSimulation &_sim, std::vector<std::vector<int>> &_scenarios) : sim(_sim), scenarios(_scenarios) {}
+	RevenueComputationNativeFunction(const AbstractSimulation &_sim, ScenarioList &_scenarios) : sim(_sim), scenarios(_scenarios) {}
 	virtual ~RevenueComputationNativeFunction() {}
 
 	localsolver::lsdouble call(const localsolver::LSNativeContext& context) override;
 
-	void setScenarios(std::vector<std::vector<int>> &_scenarios) { this->scenarios = _scenarios; }
+	void setScenarios(const ScenarioList &_scenarios) { this->scenarios = _scenarios; }
 
 private:
 	const AbstractSimulation &sim;
-	std::vector<std::vector<int>> &scenarios, emptyScenarios = {};
+	ScenarioList &scenarios;
+	ScenarioList emptyScenarios = {};
 };
 
 class LSOptimizer : public BookingLimitOptimizer {
 public:
 	LSOptimizer(const AbstractSimulation& _sim);
-	Result solve(std::vector<std::vector<int>>& scenarios) override;
+	Result solve(const ScenarioList& scenarios) override;
 private:
 	localsolver::LocalSolver ls;
 	RevenueComputationNativeFunction rfunc;

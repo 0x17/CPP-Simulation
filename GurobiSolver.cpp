@@ -29,20 +29,20 @@ void CustomCallback::callback() {
 	}
 }
 
-Result GurobiOptimizer::solve(vector<vector<int>>& scenarios) {
+Result GurobiOptimizer::solve(const ScenarioList& scenarios) {
 	return !globals::ECONOMY_OF_SCALE_ENABLED ?
 		//solveWithOldFormulation(scenarios) :
 		solveWithNewFormulation(scenarios) :
 		solveWithEconomiesOfScale(scenarios);
 }
 
-Result GurobiOptimizer::solveWithOldFormulation(vector<vector<int>>& scenarios) {
+Result GurobiOptimizer::solveWithOldFormulation(const ScenarioList &scenarios) {
 	CustomCallback callback;
 	Result res;
 
 	int J = sim.getNumClasses(),
 		C = sim.getC(),
-		S = (int)scenarios.size();
+		S = (int)scenarios.getM();
 
 	auto cj = [&](int j) { return sim.getCustomer(j).consumptionPerReq; };
 	auto rj = [&](int j) { return sim.getCustomer(j).revenuePerReq; };
@@ -87,7 +87,7 @@ Result GurobiOptimizer::solveWithOldFormulation(vector<vector<int>>& scenarios) 
 			model.addConstr(rcapjs(j, s) == (bcj[j] - previouslyUtilizedCap));
 
 			GRBVar kjsarr[] = { kjs(j,s) };
-			model.addGenConstrMin(njs(j, s), kjsarr, 1, scenarios[s][j]);
+			model.addGenConstrMin(njs(j, s), kjsarr, 1, scenarios(s,j));
 		}
 	}
 
@@ -166,13 +166,13 @@ GRBLinExpr sum3D(int ub1, int ub2, int ub3, Func f) {
 	return result;
 }
 
-Result GurobiOptimizer::solveWithEconomiesOfScale(std::vector<std::vector<int>> &scenarios) {
+Result GurobiOptimizer::solveWithEconomiesOfScale(const ScenarioList &scenarios) {
 	CustomCallback callback;
 	Result res;
 
 	int J = sim.getNumClasses(),
 			C = sim.getC(),
-			S = (int)scenarios.size(),
+			S = scenarios.getM(),
 			U = C + 1;
 
 	auto rj = [&](int j) { return sim.getCustomer(j).revenuePerReq; };
@@ -230,7 +230,7 @@ Result GurobiOptimizer::solveWithEconomiesOfScale(std::vector<std::vector<int>> 
 			model.addConstr(sum(U, [&](int u) { return nbjsu[j](s, u) * u; }) == nbjs(j, s));
 
 			GRBVar nbjsarr[] = { nbjs(j,s ) };
-			model.addGenConstrMin(njs(j, s), nbjsarr, 1, scenarios[s][j]);
+			model.addGenConstrMin(njs(j, s), nbjsarr, 1, scenarios(s,j));
 
 			model.addConstr(sum2D(j+1, J, 0, U, [&](int i, int u) { return njsu[i](s,u) * u * cju(i,u); }) + sum(U, [&](int u) { return nbjsu[j](s,u) * u * cju(j,u); }) <= bcj[j]);
 			model.addConstr(sum2D(j+1, J, 0, U, [&](int i, int u) { return njsu[i](s,u) * u * cju(i,u); }) + sum(U, [&](int u) { return nbjsu[j](s,u) * (u+1) * cju(j,u+1); }) >= bcj[j] + globals::EPSILON2);
@@ -261,13 +261,13 @@ Result GurobiOptimizer::solveWithEconomiesOfScale(std::vector<std::vector<int>> 
 	return res;
 }
 
-Result GurobiOptimizer::solveWithNewFormulation(std::vector<std::vector<int>> &scenarios) {
+Result GurobiOptimizer::solveWithNewFormulation(const ScenarioList &scenarios) {
 	CustomCallback callback;
 	Result res;
 
 	int J = sim.getNumClasses(),
 			C = sim.getC(),
-			S = (int)scenarios.size();
+			S = scenarios.getM();
 
 	auto cj = [&](int j) { return sim.getCustomer(j).consumptionPerReq; };
 	auto rj = [&](int j) { return sim.getCustomer(j).revenuePerReq; };
@@ -305,7 +305,7 @@ Result GurobiOptimizer::solveWithNewFormulation(std::vector<std::vector<int>> &s
 
 		for (int s = 0; s < S; s++) {
 			GRBVar nbjsarr[] = { nbjs(j,s ) };
-			model.addGenConstrMin(njs(j, s), nbjsarr, 1, scenarios[s][j]);
+			model.addGenConstrMin(njs(j, s), nbjsarr, 1, scenarios(s,j));
 
 			model.addConstr(sum(j+1, J, [&](int i) { return njs(i,s) * cj(i); }) + nbjs(j,s) * cj(j) <= bcj[j]);
 			model.addConstr(sum(j+1, J, [&](int i) { return njs(i,s) * cj(i); }) + (nbjs(j,s) + 1.0) * cj(j) >= bcj[j] + globals::EPSILON);

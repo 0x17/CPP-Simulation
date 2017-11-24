@@ -2,9 +2,7 @@
 #include <boost/algorithm/string/join.hpp>
 
 #include "Evaluator.h"
-#include "Simulation.h"
 #include "Helpers.h"
-#include "Stopwatch.h"
 #include "Globals.h"
 
 using namespace std;
@@ -31,18 +29,18 @@ Result AbstractEvaluator::extractOptimumFromList(const ResultList& results, bool
 	return optResult;
 }
 
-Result AbstractEvaluator::solve(AbstractSimulation::ScenarioList& scenarios) {
+Result AbstractEvaluator::solve(const ScenarioList& scenarios) {
 	Stopwatch sw;
 	sw.start();
-	/*auto res = collectResults(scenarios);	
+	/*auto res = collectResults(scenarios);
 	auto opt = extractOptimumFromList(res, false);*/
 	auto opt = computeOptimum(scenarios);
 	cout << endl << "Time passed = " << sw.lookAndReset() << endl;
 	return opt;
 }
 
-ResultList Evaluator2D::collectResults(AbstractSimulation::ScenarioList &scenarios) const {
-	ResultList results(sim.getC() + 1);
+ResultList Evaluator2D::collectResults(const ScenarioList &scenarios) const {
+	ResultList results(static_cast<unsigned long>(sim.getC() + 1));
 	vector<int> bookingLimits(2);
 	bookingLimits[0] = sim.getC();
 	for(bookingLimits[1] = 0; bookingLimits[1] <= sim.getC(); bookingLimits[1]++) {
@@ -53,7 +51,7 @@ ResultList Evaluator2D::collectResults(AbstractSimulation::ScenarioList &scenari
 	return results;
 }
 
-Result Evaluator2D::computeOptimum(AbstractSimulation::ScenarioList& scenarios) const {
+Result Evaluator2D::computeOptimum(const ScenarioList& scenarios) const {
 	Result opt;
 	vector<int> bookingLimits(2);
 	bookingLimits[0] = sim.getC();
@@ -68,9 +66,9 @@ Result Evaluator2D::computeOptimum(AbstractSimulation::ScenarioList& scenarios) 
 	return opt;
 }
 
-ResultList Evaluator3D::collectResults(AbstractSimulation::ScenarioList &scenarios) const {
-	ResultList results((int)(0.5 * (double)(sim.getC() + 1) * (double)(sim.getC() + 2)));
-	vector<int> bookingLimits(sim.getNumClasses());
+ResultList Evaluator3D::collectResults(const ScenarioList &scenarios) const {
+	ResultList results(static_cast<unsigned long>((int)(0.5 * (double)(sim.getC() + 1) * (double)(sim.getC() + 2))));
+	vector<int> bookingLimits(static_cast<unsigned long>(sim.getNumClasses()));
 	bookingLimits[0] = sim.getC();
 	int ctr = 0;
 	for (bookingLimits[1] = 0; bookingLimits[1] <= bookingLimits[0]; bookingLimits[1]++) {
@@ -83,9 +81,9 @@ ResultList Evaluator3D::collectResults(AbstractSimulation::ScenarioList &scenari
 	return results;
 }
 
-Result Evaluator3D::computeOptimum(AbstractSimulation::ScenarioList& scenarios) const {
+Result Evaluator3D::computeOptimum(const ScenarioList& scenarios) const {
 	Result opt;
-	vector<int> bookingLimits(sim.getNumClasses());
+	vector<int> bookingLimits(static_cast<unsigned long>(sim.getNumClasses()));
 	bookingLimits[0] = sim.getC();
 	for (bookingLimits[1] = 0; bookingLimits[1] <= bookingLimits[0]; bookingLimits[1]++) {
 		for (bookingLimits[2] = 0; bookingLimits[2] <= bookingLimits[1]; bookingLimits[2]++) {
@@ -100,9 +98,9 @@ Result Evaluator3D::computeOptimum(AbstractSimulation::ScenarioList& scenarios) 
 	return opt;
 }
 
-ResultList EvaluatorMultiDimensional::collectResults(AbstractSimulation::ScenarioList &scenarios) const {
+ResultList EvaluatorMultiDimensional::collectResults(const ScenarioList &scenarios) const {
 	ResultList resultList(1);
-	vector<int> bookingLimits(sim.getNumClasses());
+	vector<int> bookingLimits(static_cast<unsigned long>(sim.getNumClasses()));
 	Helpers::Tracer tr("FullEnumerationTrace");
 	Stopwatch sw;
 	const int timelimit = 15;
@@ -140,9 +138,9 @@ ResultList EvaluatorMultiDimensional::collectResults(AbstractSimulation::Scenari
 	return resultList;
 }
 
-Result EvaluatorMultiDimensional::computeOptimum(AbstractSimulation::ScenarioList& scenarios) const {
+Result EvaluatorMultiDimensional::computeOptimum(const ScenarioList& scenarios) const {
 	Result opt;
-	vector<int> bookingLimits(sim.getNumClasses());
+	vector<int> bookingLimits(static_cast<unsigned long>(sim.getNumClasses()));
 	Helpers::Tracer tr("FullEnumerationTrace");
 	Stopwatch sw;
 	const double timelimit = globals::TIME_LIMIT;

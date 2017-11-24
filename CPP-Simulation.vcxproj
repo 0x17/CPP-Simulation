@@ -76,8 +76,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\gurobi700\win64\include;C:\localsolver_6_5\include;C:\Boost\include\boost-1_59;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Boost\lib;C:\localsolver_6_5\bin;C:\gurobi700\win64\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\gurobi751\win64\include;C:\localsolver_7_0\include;C:\Boost\include\boost-1_59;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Boost\lib;C:\localsolver_7_0\bin;C:\gurobi751\win64\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -86,8 +86,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\gurobi700\win64\include;C:\localsolver_6_5\include;C:\Boost\include\boost-1_59;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Boost\lib;C:\localsolver_6_5\bin;C:\gurobi700\win64\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\gurobi751\win64\include;C:\localsolver_7_0\include;C:\Boost\include\boost-1_59;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Boost\lib;C:\localsolver_7_0\bin;C:\gurobi751\win64\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -114,7 +114,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>localsolver.dll.lib;gurobi_c++mdd2015.lib;gurobi70.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>localsolver.dll.lib;gurobi_c++mdd2015.lib;gurobi75.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -150,7 +150,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>localsolver.dll.lib;gurobi_c++md2015.lib;gurobi70.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>localsolver.dll.lib;gurobi_c++md2015.lib;gurobi75.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

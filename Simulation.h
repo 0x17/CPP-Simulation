@@ -7,6 +7,7 @@
 
 #include <boost/optional.hpp>
 #include "json11.hpp"
+#include "Matrix.h"
 
 struct Customer {
     std::string name;
@@ -14,19 +15,19 @@ struct Customer {
     std::string description;
     double consumptionPerReq, revenuePerReq;
 
-    Customer(const json11::Json &obj);
+    explicit Customer(const json11::Json &obj);
 };
 
 using OptionalPolicy = boost::optional<std::vector<int>>;
 
+using Scenario = std::vector<int>;
+using ScenarioList = Matrix<int>;
+
 class AbstractSimulation {
 public:
-	using Scenario = std::vector<int>;
-	using ScenarioList = std::vector<Scenario>;
-
 	using LUTList = std::vector<std::vector<double>>;
 
-	AbstractSimulation(const std::string &dataFilename);
+    explicit AbstractSimulation(const std::string &dataFilename);
 	virtual ~AbstractSimulation() {}
 
 	enum class SamplingType {
@@ -37,8 +38,8 @@ public:
     Scenario pickDemands(int scenarioIx, int numScenarios);
 	Scenario pickDemandsDescriptive(int scenarioIx, int numScenarios, LUTList& lutList);
     ScenarioList generateScenarios(int ntries, int seed, SamplingType stype = SamplingType::Descriptive);
-    std::vector<double> runSimulation(const std::vector<int> &bookingLimits, ScenarioList &scenarios) const;
-	double averageRevenueOfSimulation(const std::vector<int>& bookingLimits, ScenarioList& scenarios) const;
+    std::vector<double> runSimulation(const std::vector<int>& bookingLimits, const ScenarioList &scenarios) const;
+	double averageRevenueOfSimulation(const std::vector<int>& bookingLimits, const ScenarioList& scenarios) const;
 
 	virtual double objective(const std::vector<int> &demands, const std::vector<int> &bookingLimits) const = 0;
 
@@ -64,7 +65,7 @@ struct Result {
 	double profit;
 
 	Result() : bookingLimits(0), profit(0) {}
-	Result(int numClasses) : bookingLimits((unsigned long)numClasses), profit(0) {}
+    explicit Result(int numClasses) : bookingLimits((unsigned long)numClasses), profit(0) {}
 	Result(const std::vector<int>& booking_limits, double profit) : bookingLimits(booking_limits), profit(profit) {}
 
 	std::string toString() const;
@@ -81,7 +82,7 @@ public:
 		}
 	}
 	virtual ~BookingLimitOptimizer() {}
-	virtual Result solve(std::vector<std::vector<int>>& scenarios) = 0;
+	virtual Result solve(const ScenarioList& scenarios) = 0;
 
 	std::string getName() const { return name; }
 
@@ -94,16 +95,16 @@ private:
 
 class TwoClassSimulation : public AbstractSimulation {
 public:
-    TwoClassSimulation(const std::string &dataFilename) : AbstractSimulation(dataFilename) {}
-	virtual double objective(const std::vector<int>& demands, const std::vector<int>& bookingLimits) const override;
+    explicit TwoClassSimulation(const std::string &dataFilename) : AbstractSimulation(dataFilename) {}
+    double objective(const std::vector<int>& demands, const std::vector<int>& bookingLimits) const override;
 	OptionalPolicy heuristicPolicy() const override;
 	OptionalPolicy optimalPolicy() const override;
 };
 
 class MultiClassSimulation : public AbstractSimulation {
 public:
-    MultiClassSimulation(const std::string &dataFilename = "multi_data.json") : AbstractSimulation(dataFilename) {}
-	virtual double objective(const std::vector<int>& demands, const std::vector<int>& bookingLimits) const override;
+    explicit MultiClassSimulation(const std::string &dataFilename = "multi_data.json") : AbstractSimulation(dataFilename) {}
+    double objective(const std::vector<int>& demands, const std::vector<int>& bookingLimits) const override;
 	OptionalPolicy heuristicPolicy() const override;
 	OptionalPolicy optimalPolicy() const override;
 	double eosConsumption(int j, int u) const;

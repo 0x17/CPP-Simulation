@@ -54,7 +54,7 @@ LSOptimizer::LSOptimizer(const AbstractSimulation& _sim): BookingLimitOptimizer(
 	ls.getParam().setNbThreads(1);
 }
 
-Result LSOptimizer::solve(vector<vector<int>>& scenarios) {
+Result LSOptimizer::solve(const ScenarioList& scenarios) {
 	rfunc.setScenarios(scenarios);
 
 	auto lsphase = ls.createPhase();

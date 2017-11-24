@@ -51,7 +51,7 @@ void runOptimizers() {
 	list<pair<string, Result>> results;
 
 	for(auto optimizer : optimizers) {
-		results.push_back(make_pair(optimizer->getName(), optimizer->solve(scenarios)));
+		results.emplace_back(optimizer->getName(), optimizer->solve(scenarios));
 	}
 
 	for(auto res : results) {

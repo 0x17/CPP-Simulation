@@ -28,52 +28,56 @@ string Result::toString() const {
 AbstractSimulation::AbstractSimulation(const string &dataFilename) {
     string errMsg;
     json11::Json obj = json11::Json::parse(Helpers::slurp(dataFilename), errMsg);
-	if(errMsg.size() > 0) {
-		throw new runtime_error("Unable to parse " + dataFilename + " error = " + errMsg);
+	if(!errMsg.empty()) {
+		throw runtime_error("Unable to parse " + dataFilename + " error = " + errMsg);
 	}
     C = obj["capacity"].int_value();
-	for(auto c : obj["clients"].array_items()) {
-		customers.push_back(Customer(c));
+	for(const auto &c : obj["clients"].array_items()) {
+		customers.emplace_back(c);
 	}
     numClasses = (int)customers.size();
 }
 
-vector<double> AbstractSimulation::runSimulation(const vector<int> &bookingLimits, ScenarioList &scenarios) const {
-    vector<double> revenues(scenarios.size());
-    for(int i=0; i<scenarios.size(); i++) {
-        revenues[i] = objective(scenarios[i], bookingLimits);
+vector<double> AbstractSimulation::runSimulation(const vector<int> &bookingLimits, const ScenarioList &scenarios) const {
+    vector<double> revenues(static_cast<unsigned long>(scenarios.getM()));
+    for(int i=0; i<revenues.size(); i++) {
+        revenues[i] = objective(scenarios.row(i), bookingLimits);
     }
     return revenues;
 }
 
-double AbstractSimulation::averageRevenueOfSimulation(const std::vector<int>& bookingLimits, ScenarioList& scenarios) const {
+double AbstractSimulation::averageRevenueOfSimulation(const std::vector<int>& bookingLimits, const ScenarioList& scenarios) const {
 	return Helpers::vecAverage(runSimulation(bookingLimits, scenarios));
 }
 
 vector<double> AbstractSimulation::statisticalMeansOfScenarios(ScenarioList& scenarios) {
-	vector<double> means = Helpers::constructVector<double>((int)scenarios[0].size(), [&](int ix) { return 0.0; });
-	for(auto scenario : scenarios) {
-		for(int i=0; i<means.size(); i++) {
-			means[i] += scenario[i];
-		}
+	vector<double> customerMeans(static_cast<unsigned long>(scenarios.getN()), 0.0);
+	int scenarioCount = scenarios.getM();
+
+	scenarios.foreach([&customerMeans](int i, int j, int val) {
+		customerMeans[j] += val;
+	});
+
+	for (double &customerMean : customerMeans) {
+		customerMean /= (double)scenarioCount;
 	}
-	for(int i=0; i<means.size(); i++) {
-		means[i] /= scenarios.size();
-	}
-	return means;
+
+	return customerMeans;
 }
 
 vector<double> AbstractSimulation::statisticalStandardDeviationsOfScenarios(ScenarioList& scenarios) {
 	auto means = statisticalMeansOfScenarios(scenarios);
-	vector<double> stddevs = Helpers::constructVector<double>((int)scenarios[0].size(), [&](int ix) { return 0.0; });
-	for (auto scenario : scenarios) {
-		for (int i = 0; i<stddevs.size(); i++) {
-			stddevs[i] += pow(scenario[i] - means[i], 2);
-		}
+	vector<double> stddevs(static_cast<unsigned long>(scenarios.getN()), 0.0);
+	int scenarioCount = scenarios.getM();
+
+	scenarios.foreach([&stddevs, &means](int i, int j, int val) {
+		stddevs[j] += pow(val - means[j], 2);
+	});
+
+	for (double &stddev : stddevs) {
+		stddev = sqrt(stddev / (double)scenarioCount);
 	}
-	for (int i = 0; i<stddevs.size(); i++) {
-		stddevs[i] = sqrt(stddevs[i] / scenarios.size());
-	}
+
 	return stddevs;
 }
 
@@ -148,7 +152,7 @@ double MultiClassSimulation::eosConsumption(int j, int u) const {
 	return max(1.0, customers[j].consumptionPerReq - (boost::math::erf(4 * u / deltaX - 2) * deltaY / 2.0 + deltaY / 2.0));
 }
 
-AbstractSimulation::Scenario AbstractSimulation::pickDemands(int scenarioIx, int numScenarios) {
+Scenario AbstractSimulation::pickDemands(int scenarioIx, int numScenarios) {
 	Scenario demands((unsigned long)numClasses);
 	int customerIx = 0;
 	for(Customer &c : customers) {
@@ -158,7 +162,7 @@ AbstractSimulation::Scenario AbstractSimulation::pickDemands(int scenarioIx, int
 	return demands;
 }
 
-AbstractSimulation::Scenario AbstractSimulation::pickDemandsDescriptive(int scenarioIx, int numScenarios, LUTList &lutList) {
+Scenario AbstractSimulation::pickDemandsDescriptive(int scenarioIx, int numScenarios, LUTList &lutList) {
     Scenario demands((unsigned long)numClasses);
     int customerIx = 0;
     for(Customer &c : customers) {
@@ -168,10 +172,10 @@ AbstractSimulation::Scenario AbstractSimulation::pickDemandsDescriptive(int scen
     return demands;
 }
 
-AbstractSimulation::ScenarioList AbstractSimulation::generateScenarios(int ntries, int seed, SamplingType stype) {
+ScenarioList AbstractSimulation::generateScenarios(int ntries, int seed, SamplingType stype) {
 	Helpers::resetSeed(seed);
 
-	ScenarioList scenarios((unsigned long) ntries);
+	ScenarioList scenarios(ntries, static_cast<int>(customers.size()));
 
 	if(stype == SamplingType::Descriptive) {
 		LUTList lookupTables(customers.size());
@@ -179,11 +183,11 @@ AbstractSimulation::ScenarioList AbstractSimulation::generateScenarios(int ntrie
 			lookupTables[i] = Helpers::generateNormalDistributionDescriptiveSamplingLUT(ntries, customers[i].expD, customers[i].devD);
 		}
 		for(int i=0; i<ntries; i++) {
-			scenarios[i] = pickDemandsDescriptive(i, ntries, lookupTables);
+			scenarios.setRow(i, pickDemandsDescriptive(i, ntries, lookupTables));
 		}
 	} else {
 		for(int i=0; i<ntries; i++) {
-			scenarios[i] = pickDemands(i, ntries);
+			scenarios.setRow(i, pickDemands(i, ntries));
 		}
 	}
 

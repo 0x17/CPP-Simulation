@@ -47,9 +47,9 @@ public:
 
 	Matrix(int _m, int _n, int value) : Matrix(_m, _n, [value](int i, int j) { return value; }) {}
 
-    ~Matrix() {}
+    ~Matrix() = default;
 
-    int getM() const { return m; }
+	int getM() const { return m; }
     int getN() const { return n; }
 
     inline T operator()(int i, int j) const { return data[i*n+j]; }
@@ -76,6 +76,11 @@ public:
             r[j] = data[i*n+j];
         return r;
     }
+
+	void setRow(int i, const std::vector<T> &row) {
+		for(int j=0; j<n; j++)
+			data[i*n+j] = row[j];
+	}
 
 	std::vector<T> column(int j) const {
 		std::vector<T> c(m);
