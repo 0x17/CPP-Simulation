@@ -39,8 +39,6 @@ void Experiments::effectOfDescriptiveSampling() {
 	Helpers::spit("diffMeanRand;diffMeanDescr;diffStdDevRand;diffStdDevDescr\n", "diffmeans.txt");
 	Helpers::spit("ntries;solvetime\n", "solvetimeforntries.txt");
 
-
-
 	SolutionMethod method = SolutionMethod::Gurobi;
 
 	for(int ntries = 1; ntries <= /*200*/ 106; ntries += 5) {

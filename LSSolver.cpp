@@ -54,7 +54,7 @@ LSOptimizer::LSOptimizer(const AbstractSimulation& _sim): BookingLimitOptimizer(
 	ls.getParam().setNbThreads(1);
 }
 
-Result LSOptimizer::solve(const DemandScenarioList& scenarios) {
+Result LSOptimizer::solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioList> &consumptionScenarios) {
 	rfunc.setScenarios(scenarios);
 
 	auto lsphase = ls.createPhase();

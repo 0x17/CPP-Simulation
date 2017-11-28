@@ -106,7 +106,7 @@ public:
 		}
 	}
 	virtual ~BookingLimitOptimizer() {}
-	virtual Result solve(const DemandScenarioList& scenarios) = 0;
+	virtual Result solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioList> &consumptionScenarios = {}) = 0;
 
 	std::string getName() const { return name; }
 

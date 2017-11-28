@@ -10,8 +10,11 @@ namespace globals {
 	
 	const double TIME_LIMIT = 30.0;
 	const bool TRACING_ENABLED = true;
-	const bool ECONOMY_OF_SCALE_ENABLED = true;
+	
+	const bool ECONOMY_OF_SCALE_ENABLED = false;
 	const bool CONDITIONAL_VALUE_AT_RISK_ENABLED = true;
+	const bool STOCHASTIC_CONSUMPTIONS_ENABLED = true;
+
 	const double PROFIT_WEIGHT = 0.5;
 	const double ALPHA = 0.7;
 }

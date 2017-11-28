@@ -23,7 +23,7 @@ private:
 class LSOptimizer : public BookingLimitOptimizer {
 public:
 	LSOptimizer(const AbstractSimulation& _sim);
-	Result solve(const DemandScenarioList& scenarios) override;
+	Result solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioList> &consumptionScenarios) override;
 private:
 	localsolver::LocalSolver ls;
 	RevenueComputationNativeFunction rfunc;
