@@ -29,7 +29,7 @@ Result AbstractEvaluator::extractOptimumFromList(const ResultList& results, bool
 	return optResult;
 }
 
-Result AbstractEvaluator::solve(const ScenarioList& scenarios) {
+Result AbstractEvaluator::solve(const DemandScenarioList& scenarios) {
 	Stopwatch sw;
 	sw.start();
 	/*auto res = collectResults(scenarios);
@@ -39,7 +39,7 @@ Result AbstractEvaluator::solve(const ScenarioList& scenarios) {
 	return opt;
 }
 
-ResultList Evaluator2D::collectResults(const ScenarioList &scenarios) const {
+ResultList Evaluator2D::collectResults(const DemandScenarioList &scenarios) const {
 	ResultList results(static_cast<unsigned long>(sim.getC() + 1));
 	vector<int> bookingLimits(2);
 	bookingLimits[0] = sim.getC();
@@ -51,7 +51,7 @@ ResultList Evaluator2D::collectResults(const ScenarioList &scenarios) const {
 	return results;
 }
 
-Result Evaluator2D::computeOptimum(const ScenarioList& scenarios) const {
+Result Evaluator2D::computeOptimum(const DemandScenarioList& scenarios) const {
 	Result opt;
 	vector<int> bookingLimits(2);
 	bookingLimits[0] = sim.getC();
@@ -66,7 +66,7 @@ Result Evaluator2D::computeOptimum(const ScenarioList& scenarios) const {
 	return opt;
 }
 
-ResultList Evaluator3D::collectResults(const ScenarioList &scenarios) const {
+ResultList Evaluator3D::collectResults(const DemandScenarioList &scenarios) const {
 	ResultList results(static_cast<unsigned long>((int)(0.5 * (double)(sim.getC() + 1) * (double)(sim.getC() + 2))));
 	vector<int> bookingLimits(static_cast<unsigned long>(sim.getNumClasses()));
 	bookingLimits[0] = sim.getC();
@@ -81,7 +81,7 @@ ResultList Evaluator3D::collectResults(const ScenarioList &scenarios) const {
 	return results;
 }
 
-Result Evaluator3D::computeOptimum(const ScenarioList& scenarios) const {
+Result Evaluator3D::computeOptimum(const DemandScenarioList& scenarios) const {
 	Result opt;
 	vector<int> bookingLimits(static_cast<unsigned long>(sim.getNumClasses()));
 	bookingLimits[0] = sim.getC();
@@ -98,7 +98,7 @@ Result Evaluator3D::computeOptimum(const ScenarioList& scenarios) const {
 	return opt;
 }
 
-ResultList EvaluatorMultiDimensional::collectResults(const ScenarioList &scenarios) const {
+ResultList EvaluatorMultiDimensional::collectResults(const DemandScenarioList &scenarios) const {
 	ResultList resultList(1);
 	vector<int> bookingLimits(static_cast<unsigned long>(sim.getNumClasses()));
 	Helpers::Tracer tr("FullEnumerationTrace");
@@ -119,7 +119,7 @@ ResultList EvaluatorMultiDimensional::collectResults(const ScenarioList &scenari
 		if (classIndex == bookingLimits.size()) {
 			tr.intervalTrace(resultList[0].profit);
 
-			double obj = Helpers::vecAverage(sim.runSimulation(bookingLimits, scenarios));
+			double obj = sim.objectiveWithGlobalSettings(bookingLimits, scenarios);
 			if(obj > resultList[0].profit) {
 				resultList[0].profit = obj;
 				resultList[0].bookingLimits = bookingLimits;
@@ -138,7 +138,7 @@ ResultList EvaluatorMultiDimensional::collectResults(const ScenarioList &scenari
 	return resultList;
 }
 
-Result EvaluatorMultiDimensional::computeOptimum(const ScenarioList& scenarios) const {
+Result EvaluatorMultiDimensional::computeOptimum(const DemandScenarioList& scenarios) const {
 	Result opt;
 	vector<int> bookingLimits(static_cast<unsigned long>(sim.getNumClasses()));
 	Helpers::Tracer tr("FullEnumerationTrace");
@@ -157,7 +157,7 @@ Result EvaluatorMultiDimensional::computeOptimum(const ScenarioList& scenarios) 
 		if (classIndex == bookingLimits.size()) {
 			tr.intervalTrace(opt.profit);
 
-			double obj = Helpers::vecAverage(sim.runSimulation(bookingLimits, scenarios));
+			double obj = sim.objectiveWithGlobalSettings(bookingLimits, scenarios);
 			if (obj > opt.profit) {
 				opt.profit = obj;
 				opt.bookingLimits = bookingLimits;

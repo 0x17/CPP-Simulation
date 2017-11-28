@@ -17,7 +17,7 @@ lsdouble RevenueComputationNativeFunction::call(const LSNativeContext& context) 
 		bookingLimits[i] = (int)context.getIntValue(i);
 	}
 
-	double obj = sim.averageRevenueOfSimulation(bookingLimits, scenarios);
+	double obj = sim.objectiveWithGlobalSettings(bookingLimits, scenarios);
 	if(obj > bks) {
 		bks = obj;
 	}
@@ -54,7 +54,7 @@ LSOptimizer::LSOptimizer(const AbstractSimulation& _sim): BookingLimitOptimizer(
 	ls.getParam().setNbThreads(1);
 }
 
-Result LSOptimizer::solve(const ScenarioList& scenarios) {
+Result LSOptimizer::solve(const DemandScenarioList& scenarios) {
 	rfunc.setScenarios(scenarios);
 
 	auto lsphase = ls.createPhase();

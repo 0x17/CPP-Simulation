@@ -46,7 +46,7 @@ void runOptimizers() {
 	vector<BookingLimitOptimizer *> optimizers = {  &evl, &ls, &gurobi, &ps };
 	//vector<BookingLimitOptimizer *> optimizers = { &gurobi };
 
-	auto scenarios = sim.generateScenarios(ntries, 42, AbstractSimulation::SamplingType::Descriptive);
+	auto scenarios = sim.generateDemandScenarios(ntries, 42, SamplingType::Descriptive);
 
 	list<pair<string, Result>> results;
 

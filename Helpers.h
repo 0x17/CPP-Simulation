@@ -35,7 +35,9 @@ namespace Helpers {
 	double pickNextWithLUT(std::vector<double> &lut, int& drawnCounter);
 	double pickNextWithLUT(std::vector<double> &lut);
 
+	double vecAverage(const std::vector<int> & nums);
 	double vecAverage(const std::vector<double> & nums);
+	double vecAverageSubRange(const std::vector<double> &nums, int startIndexInclusively, int endIndexExclusively);
 
 	template<class A, class Func>
 	std::vector<A> constructVector(int size, Func f) {

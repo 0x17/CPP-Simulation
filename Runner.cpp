@@ -70,7 +70,7 @@ void Runner::commandLine(const list<string> &args) {
 	Config cfg = processArguments(args);
 	MultiClassSimulation sim(cfg.instanceName+".json");
 
-	auto scenarios = sim.generateScenarios(cfg.numScenarios, 42, AbstractSimulation::SamplingType::Descriptive);
+	auto scenarios = sim.generateDemandScenarios(cfg.numScenarios, 42, SamplingType::Descriptive);
 
 	auto solverNameToObject = generateSolverNameToObjectMapping(sim);
 	BookingLimitOptimizer *optimizer = solverNameToObject[cfg.solverName]();
@@ -122,7 +122,7 @@ void Runner::benchmark(const string &dir) {
 	for(const string& instanceName : instances) {
 		MultiClassSimulation sim(dir + "/" + instanceName + ".json");
 
-		auto scenarios = sim.generateScenarios(150, 42, AbstractSimulation::SamplingType::Descriptive);// AbstractSimulation::SamplingType::Random);
+		auto scenarios = sim.generateDemandScenarios(150, 42, SamplingType::Descriptive);// AbstractSimulation::SamplingType::Random);
 
 		auto solverNameToObject = generateSolverNameToObjectMapping(sim);
 

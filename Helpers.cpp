@@ -44,8 +44,16 @@ double Helpers::pickNormalDescriptive(double mean, double stddev, int scenarioIx
 	return invNormal(((double)scenarioIx + 0.5) / (double)nscenarios, mean, stddev);
 }
 
+double Helpers::vecAverage(const vector<int>& nums) {
+	return accumulate(nums.begin(), nums.end(), 0.0) / (double)nums.size();
+}
+
 double Helpers::vecAverage(const vector<double>& nums) {
 	return accumulate(nums.begin(), nums.end(), 0.0) / (double)nums.size();
+}
+
+double Helpers::vecAverageSubRange(const std::vector<double>& nums, int startIndexInclusively, int endIndexExclusively) {
+	return accumulate(nums.begin() + startIndexInclusively, nums.begin() + endIndexExclusively, 0.0) / (double)(endIndexExclusively - startIndexInclusively);
 }
 
 void Helpers::spit(const string &s, const string &filename) {

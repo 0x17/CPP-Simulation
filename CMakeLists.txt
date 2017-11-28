@@ -18,6 +18,6 @@ set(SOURCE_FILES main.cpp ${COMMON_SOURCE_FILES})
 add_executable(CPP_Simulation ${SOURCE_FILES})
 target_link_libraries(CPP_Simulation ${Boost_LIBRARIES})
 
-set(TEST_SOURCE_FILES UnitTests/testmain.cpp UnitTests/MatrixTest.h UnitTests/MatrixTest.cpp UnitTests/TestHelpers.h UnitTests/TestHelpers.cpp)
+set(TEST_SOURCE_FILES ${COMMON_SOURCE_FILES} UnitTests/testmain.cpp UnitTests/MatrixTest.h UnitTests/MatrixTest.cpp UnitTests/TestHelpers.h UnitTests/TestHelpers.cpp UnitTests/SimulationTest.cpp UnitTests/SimulationTest.h UnitTests/HelpersTest.cpp)
 add_executable(CPP_Simulation_Test ${TEST_SOURCE_FILES})
 target_link_libraries(CPP_Simulation_Test ${Boost_LIBRARIES} ${GTEST_BOTH_LIBRARIES})

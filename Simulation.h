@@ -8,38 +8,59 @@
 #include <boost/optional.hpp>
 #include "json11.hpp"
 #include "Matrix.h"
+#include "Helpers.h"
 
 struct Customer {
     std::string name;
     double expD, devD;
     std::string description;
-    double consumptionPerReq, revenuePerReq;
+	double consumptionPerReqMean, consumptionPerReqStdDev;
+	double revenuePerReq;
 
     explicit Customer(const json11::Json &obj);
 };
 
 using OptionalPolicy = boost::optional<std::vector<int>>;
 
-using Scenario = std::vector<int>;
-using ScenarioList = Matrix<int>;
+using DemandScenario = std::vector<int>;
+using DemandScenarioList = Matrix<int>;
+
+using ConsumptionScenario = std::vector<double>;
+using ConsumptionScenarioList = Matrix<double>;
+
+using LUTList = std::vector<std::vector<double>>;
+
+enum class SamplingType {
+	Random,
+	Descriptive
+};
+
+struct DistParameters {
+    double mean, stddev;
+};
+
+LUTList generateLookupTableList(int nclasses, int ntries, const std::vector<DistParameters> &distParams);
 
 class AbstractSimulation {
 public:
-	using LUTList = std::vector<std::vector<double>>;
-
     explicit AbstractSimulation(const std::string &dataFilename);
 	virtual ~AbstractSimulation() {}
 
-	enum class SamplingType {
-		Random,
-		Descriptive
-	};
+    DemandScenario pickDemands() const;
+	DemandScenario pickDemandsDescriptive(LUTList& lutList) const;
+    DemandScenarioList generateDemandScenarios(int ntries, int seed, SamplingType stype = SamplingType::Descriptive) const;
 
-    Scenario pickDemands(int scenarioIx, int numScenarios);
-	Scenario pickDemandsDescriptive(int scenarioIx, int numScenarios, LUTList& lutList);
-    ScenarioList generateScenarios(int ntries, int seed, SamplingType stype = SamplingType::Descriptive);
-    std::vector<double> runSimulation(const std::vector<int>& bookingLimits, const ScenarioList &scenarios) const;
-	double averageRevenueOfSimulation(const std::vector<int>& bookingLimits, const ScenarioList& scenarios) const;
+	ConsumptionScenario pickConsumptions() const;
+	ConsumptionScenario pickConsumptionsDescriptive(LUTList& lutList) const;
+	ConsumptionScenarioList generateConsumptionScenarios(int ntries, int seed, SamplingType stype = SamplingType::Descriptive) const;
+
+    std::vector<double> runSimulation(const std::vector<int>& bookingLimits, const DemandScenarioList &scenarios) const;
+
+	double averageRevenueOfSimulation(const std::vector<int>& bookingLimits, const DemandScenarioList& scenarios) const;
+	double conditionalValueAtRiskOfSimulationResult(double alpha, const std::vector<double> &revenues) const;
+	double weightedProfitAndCVaRofSimulationResult(double profitWeight, double alpha, const std::vector<double> &revenues) const;
+
+	double objectiveWithGlobalSettings(const std::vector<int>& bookingLimits, const DemandScenarioList& scenarios) const;
 
 	virtual double objective(const std::vector<int> &demands, const std::vector<int> &bookingLimits) const = 0;
 
@@ -51,8 +72,11 @@ public:
 
 	Customer getCustomer(int ix) const { return customers[ix];  }
 
-	static std::vector<double> statisticalMeansOfScenarios(ScenarioList &scenarios);
-	static std::vector<double> statisticalStandardDeviationsOfScenarios(ScenarioList &scenarios);
+    std::vector<DistParameters> demandDistributionParametersForCustomers() const;
+    std::vector<DistParameters> consumptionDistributionParametersForCustomers() const;
+
+	static std::vector<double> statisticalMeansOfScenarios(DemandScenarioList &scenarios);
+	static std::vector<double> statisticalStandardDeviationsOfScenarios(DemandScenarioList &scenarios);
 
 protected:
 	int C;
@@ -82,7 +106,7 @@ public:
 		}
 	}
 	virtual ~BookingLimitOptimizer() {}
-	virtual Result solve(const ScenarioList& scenarios) = 0;
+	virtual Result solve(const DemandScenarioList& scenarios) = 0;
 
 	std::string getName() const { return name; }
 

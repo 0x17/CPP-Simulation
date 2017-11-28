@@ -29,7 +29,7 @@ void Experiments::effectOfDescriptiveSampling() {
 
 	EvaluatorMultiDimensional evl(sim);
 
-	auto refScenarios = sim.generateScenarios(100000, 23, AbstractSimulation::SamplingType::Descriptive);
+	auto refScenarios = sim.generateDemandScenarios(100000, 23, SamplingType::Descriptive);
 
 	//auto means = AbstractSimulation::statisticalMeansOfScenarios(refScenarios);
 	//auto stddevs = AbstractSimulation::statisticalStandardDeviationsOfScenarios(refScenarios);
@@ -46,8 +46,8 @@ void Experiments::effectOfDescriptiveSampling() {
 	for(int ntries = 1; ntries <= /*200*/ 106; ntries += 5) {
 		cout << "n=" << ntries << endl;
 
-		auto scenariosRand = sim.generateScenarios(ntries, 42, AbstractSimulation::SamplingType::Random);
-		auto scenariosDescr = sim.generateScenarios(ntries, 42, AbstractSimulation::SamplingType::Descriptive);
+		auto scenariosRand = sim.generateDemandScenarios(ntries, 42, SamplingType::Random);
+		auto scenariosDescr = sim.generateDemandScenarios(ntries, 42, SamplingType::Descriptive);
 
 		Result resRand, resDescr;
 		switch(method) {

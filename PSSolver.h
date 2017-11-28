@@ -5,6 +5,6 @@
 class PSSolver : public BookingLimitOptimizer {
 public:	
 	explicit PSSolver(const AbstractSimulation &_sim);
-	Result solve(const ScenarioList& scenarios) override;
+	Result solve(const DemandScenarioList& scenarios) override;
 };
 
