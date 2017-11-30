@@ -25,16 +25,29 @@ namespace fs = boost::filesystem;
 struct Config {
 	string instanceName, solverName;
 	int numScenarios;
+	bool stochasticConsumptions;
 
-	Config(const string &instanceName, const string &solverName, int numScenarios) : instanceName(instanceName),
+	Config(const string &instanceName, const string &solverName, int numScenarios, bool stochasticConsumptions) : instanceName(instanceName),
 																					 solverName(solverName),
-																					 numScenarios(numScenarios) {}
+																					 numScenarios(numScenarios),
+																					 stochasticConsumptions(stochasticConsumptions) {}
 };
 
+void showUsage() {
+	cout << "Usage: CPP-Simulation instance=multi_data.json solverName=Gurobi numScenarios=150" << endl;
+	cout << "Solver names = { Gurobi, LocalSolver, ParticleSwarm, FullEnumeration }" << endl;
+}
+
 Config processArguments(const list<string> &args) {
+	if(args.empty()) {
+		showUsage();
+		throw runtime_error("Not enough args!");
+	}
+
 	string	instanceName = "multi_data.json",
 			solverName = "Gurobi",
 			numScenarios = "150";
+	bool stochasticConsumptions;
 
 	auto assignFromArg = [](const string &prefix, const string &arg, string &out) {
 		static auto getRhs = [](const string &line) {
@@ -48,13 +61,18 @@ Config processArguments(const list<string> &args) {
 			out = getRhs(arg);
 	};
 
+	auto toggleFromOptionalArg = [](const string &toggleStr, const string &arg, bool &out) {
+		out |= algo::equals(toggleStr, arg);
+	};
+
 	for(string arg : args) {
 		assignFromArg("instance", arg, instanceName);
 		assignFromArg("solver", arg, solverName);
 		assignFromArg("nscenarios", arg, numScenarios);
+		toggleFromOptionalArg("stochasticConsumptions", arg, stochasticConsumptions);
 	}
 
-	return { instanceName, solverName, stoi(numScenarios) };
+	return { instanceName, solverName, stoi(numScenarios), stochasticConsumptions };
 }
 
 map<string, function<BookingLimitOptimizer*()>> generateSolverNameToObjectMapping(const AbstractSimulation &sim) {
@@ -70,11 +88,14 @@ void Runner::commandLine(const list<string> &args) {
 	Config cfg = processArguments(args);
 	MultiClassSimulation sim(cfg.instanceName+".json");
 
-	auto scenarios = sim.generateDemandScenarios(cfg.numScenarios, 42, SamplingType::Descriptive);
+	const auto scenarios = sim.generateDemandScenarios(cfg.numScenarios, 42, SamplingType::Descriptive);
+	const boost::optional<ConsumptionScenarioList> consumptionScenarios = cfg.stochasticConsumptions ?
+		sim.generateConsumptionScenarios(cfg.numScenarios, 42, SamplingType::Descriptive) :
+		boost::optional<ConsumptionScenarioList>{};
 
 	auto solverNameToObject = generateSolverNameToObjectMapping(sim);
 	BookingLimitOptimizer *optimizer = solverNameToObject[cfg.solverName]();
-	auto result = optimizer->solve(scenarios);
+	auto result = optimizer->solve(scenarios, consumptionScenarios);
 	cout << "Result = " << result.toString() << endl;
 	delete optimizer;
 }

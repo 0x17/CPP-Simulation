@@ -268,7 +268,7 @@ Customer::Customer(const json11::Json &obj) :
         expD(obj["expD"].number_value()),
         devD(obj["devD"].number_value()),
         description(obj["description"].string_value()),
-        consumptionPerReqMean(obj["consumptionPerReqMean"].number_value()),
+        consumptionPerReqMean(obj["consumptionPerReqMean"].is_number() ? obj["consumptionPerReqMean"].number_value() : obj["consumptionPerReq"].number_value()),
 		consumptionPerReqStdDev(obj["consumptionPerReqStdDev"].is_number() ? obj["consumptionPerReqStdDev"].number_value() : 0.0),
         revenuePerReq(obj["revenuePerReq"].number_value())
 {}
