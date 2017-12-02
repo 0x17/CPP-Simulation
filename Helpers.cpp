@@ -90,7 +90,7 @@ std::vector<double> Helpers::generateNormalDistributionDescriptiveSamplingLUT(in
 }
 
 double Helpers::pickNextWithLUT(std::vector<double> &lut, int &drawnCounter) {
-	int sampleSize = static_cast<int>(lut.size());
+	auto sampleSize = static_cast<int>(lut.size());
 	if(drawnCounter >= sampleSize) drawnCounter = 0;
 	int ix = Helpers::randRangeIncl(drawnCounter, sampleSize-1);
 	double pick = lut[ix];

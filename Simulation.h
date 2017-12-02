@@ -44,7 +44,7 @@ LUTList generateLookupTableList(int nclasses, int ntries, const std::vector<Dist
 class AbstractSimulation {
 public:
     explicit AbstractSimulation(const std::string &dataFilename);
-	virtual ~AbstractSimulation() {}
+	virtual ~AbstractSimulation() = default;
 
     DemandScenario pickDemands() const;
 	DemandScenario pickDemandsDescriptive(LUTList& lutList) const;
@@ -105,8 +105,9 @@ public:
 			heuristicBookingLimits = sim.heuristicPolicy();
 		}
 	}
-	virtual ~BookingLimitOptimizer() {}
-	virtual Result solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioList> &consumptionScenarios = {}) = 0;
+	virtual ~BookingLimitOptimizer() = default;
+
+	virtual Result solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios) = 0;
 
 	std::string getName() const { return name; }
 

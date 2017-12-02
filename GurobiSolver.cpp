@@ -30,13 +30,13 @@ void CustomCallback::callback() {
 	}
 }
 
-vector<GRBVar> modelBuilderForOldFormulation(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList> consumptionScenarios);
-vector<GRBVar> modelBuilderForNewFormulation(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList> consumptionScenarios);
-vector<GRBVar> modelBuilderForConditionalValueAtRisk(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList> consumptionScenarios);
-vector<GRBVar> modelBuilderForEconomiesOfScale(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList> consumptionScenarios);
-vector<GRBVar> modelBuilderForStochasticConsumptions(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList> consumptionScenarios);
+vector<GRBVar> modelBuilderForOldFormulation(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios);
+vector<GRBVar> modelBuilderForNewFormulation(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios);
+vector<GRBVar> modelBuilderForConditionalValueAtRisk(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios);
+vector<GRBVar> modelBuilderForEconomiesOfScale(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios);
+vector<GRBVar> modelBuilderForStochasticConsumptions(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios);
 
-Result GurobiOptimizer::solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioList> &consumptionScenarios) {
+Result GurobiOptimizer::solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios) {
 	auto assertSingleToggle = [](const vector<bool> &toggles) {
 		auto b2int = [](bool b) -> int { return b ? 1 : 0;  };
 		vector<int> nums(toggles.size());
@@ -62,7 +62,7 @@ Result GurobiOptimizer::solve(const DemandScenarioList& scenarios, const boost::
 }
 
 template<class Func>
-Result GurobiOptimizer::solveCommon(const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList> &consumptionScenarios, Func modelBuilder) {
+Result GurobiOptimizer::solveCommon(const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios, Func modelBuilder) {
 	GRBEnv env;
 	env.set(GRB_DoubleParam_MIPGap, 0.0);
 	env.set(GRB_DoubleParam_TimeLimit, /*GRB_INFINITY*/ globals::TIME_LIMIT);
@@ -157,7 +157,7 @@ GRBLinExpr sum3D(int ub1, int ub2, int ub3, Func f) {
 	return result;
 }
 
-vector<GRBVar> modelBuilderForOldFormulation(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList> consumptionScenarios) {
+vector<GRBVar> modelBuilderForOldFormulation(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios) {
 	int J = sim.getNumClasses(),
 		C = sim.getC(),
 		S = scenarios.getM();
@@ -191,7 +191,7 @@ vector<GRBVar> modelBuilderForOldFormulation(const AbstractSimulation &sim, GRBM
 	return bcj;
 }
 
-vector<GRBVar> modelBuilderForEconomiesOfScale(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList> consumptionScenarios) {
+vector<GRBVar> modelBuilderForEconomiesOfScale(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios) {
 	int J = sim.getNumClasses(),
 		C = sim.getC(),
 		S = scenarios.getM(),
@@ -208,7 +208,7 @@ vector<GRBVar> modelBuilderForEconomiesOfScale(const AbstractSimulation &sim, GR
 	vector<Matrix<GRBVar>> njsu = Helpers::constructVector<Matrix<GRBVar>>(J, [&](int j) {
 		Matrix<GRBVar> nsu(S, U, [&](int s, int u) {
 			string caption = "njsu" + to_string(j) + "," + to_string(s) + "," + to_string(u);
-			return model.addVar(0.0, 1.0, 0.0, GRB_BINARY, caption.c_str());
+			return model.addVar(0.0, 1.0, 0.0, GRB_BINARY, caption);
 		});
 		return nsu;
 	});
@@ -216,7 +216,7 @@ vector<GRBVar> modelBuilderForEconomiesOfScale(const AbstractSimulation &sim, GR
 	vector<Matrix<GRBVar>> nbjsu = Helpers::constructVector<Matrix<GRBVar>>(J, [&](int j) {
 		Matrix<GRBVar> nbsu(S, U, [&](int s, int u) {
 			string caption = "nbjsu" + to_string(j) + "," + to_string(s) + "," + to_string(u);
-			return model.addVar(0.0, 1.0, 0.0, GRB_BINARY, caption.c_str());
+			return model.addVar(0.0, 1.0, 0.0, GRB_BINARY, caption);
 		});
 		return nbsu;
 	});
@@ -263,12 +263,12 @@ std::pair<vector<GRBVar>, Matrix<GRBVar>> modelBuilderForNewFormulationWithPair(
 
 	Matrix<GRBVar> njs(J, S, [&](int j, int s) {
 		string caption = "njs" + to_string(j) + "," + to_string(s);
-		return model.addVar(0.0, C, 0.0, GRB_INTEGER, caption.c_str());
+		return model.addVar(0.0, C, 0.0, GRB_INTEGER, caption);
 	});
 
 	Matrix<GRBVar> nbjs(J, S, [&](int j, int s) {
 		string caption = "nbjs" + to_string(j) + "," + to_string(s);
-		return model.addVar(0.0, C, 0.0, GRB_INTEGER, caption.c_str());
+		return model.addVar(0.0, C, 0.0, GRB_INTEGER, caption);
 	});
 
 	model.setObjective(1.0 / (double)S * sum2D(J, S, [&](int j, int s) {  return njs(j, s) * rj(j); }), GRB_MAXIMIZE);
@@ -289,7 +289,7 @@ std::pair<vector<GRBVar>, Matrix<GRBVar>> modelBuilderForNewFormulationWithPair(
 	return make_pair(bcj, njs);
 }
 
-vector<GRBVar> modelBuilderForNewFormulation(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList> consumptionScenarios) {
+vector<GRBVar> modelBuilderForNewFormulation(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios) {
 	return modelBuilderForNewFormulationWithPair(sim, model, scenarios).first;
 }
 
@@ -316,13 +316,13 @@ void addConditionalValueAtRiskConsiderationToModel(const AbstractSimulation &sim
 	}
 }
 
-vector<GRBVar> modelBuilderForConditionalValueAtRisk(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList> consumptionScenarios) {
+vector<GRBVar> modelBuilderForConditionalValueAtRisk(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios) {
 	auto pair = modelBuilderForNewFormulationWithPair(sim, model, scenarios);
 	addConditionalValueAtRiskConsiderationToModel(sim, model, scenarios, pair.second);
 	return pair.first;
 }
 
-vector<GRBVar> modelBuilderForStochasticConsumptions(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList> consumptionScenarios) {
+vector<GRBVar> modelBuilderForStochasticConsumptions(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios) {
 	if (!consumptionScenarios.is_initialized()) {
 		throw runtime_error("No consumption scenarios provided for stochastic consumption model!");
 	}
@@ -338,12 +338,12 @@ vector<GRBVar> modelBuilderForStochasticConsumptions(const AbstractSimulation &s
 
 	Matrix<GRBVar> njs(J, S, [&](int j, int s) {
 		string caption = "njs" + to_string(j) + "," + to_string(s);
-		return model.addVar(0.0, C, 0.0, GRB_INTEGER, caption.c_str());
+		return model.addVar(0.0, C, 0.0, GRB_INTEGER, caption);
 	});
 
 	Matrix<GRBVar> nbjs(J, S, [&](int j, int s) {
 		string caption = "nbjs" + to_string(j) + "," + to_string(s);
-		return model.addVar(0.0, C, 0.0, GRB_INTEGER, caption.c_str());
+		return model.addVar(0.0, C, 0.0, GRB_INTEGER, caption);
 	});
 
 	model.setObjective(1.0 / (double)S * sum2D(J, S, [&](int j, int s) {  return njs(j, s) * rj(j); }), GRB_MAXIMIZE);

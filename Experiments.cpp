@@ -50,13 +50,13 @@ void Experiments::effectOfDescriptiveSampling() {
 		Result resRand, resDescr;
 		switch(method) {
 		case SolutionMethod::FullEnumeration:
-			resRand = evl.solve(scenariosRand);
-			resDescr = evl.solve(scenariosDescr);
+			resRand = evl.solve(scenariosRand, {});
+			resDescr = evl.solve(scenariosDescr, {});
 			break;
 		case SolutionMethod::Gurobi:
 			GurobiOptimizer optimizer(sim);
-			resRand = optimizer.solve(scenariosRand);
-			resDescr = optimizer.solve(scenariosDescr);
+			resRand = optimizer.solve(scenariosRand, {});
+			resDescr = optimizer.solve(scenariosDescr, {});
 			break;
 		}
 

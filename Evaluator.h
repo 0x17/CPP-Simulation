@@ -13,7 +13,7 @@ public:
 
 	static Result extractOptimumFromList(const ResultList &results, bool printOpts = false);
 
-	Result solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioList> &consumptionScenarios = {}) override;
+	Result solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios) override;
 };
 
 class Evaluator2D : public AbstractEvaluator {

@@ -8,7 +8,7 @@ class RevenueComputationNativeFunction : public localsolver::LSNativeFunction {
 public:
 	RevenueComputationNativeFunction(const AbstractSimulation &_sim) : sim(_sim), scenarios(emptyScenarios) {}
 	RevenueComputationNativeFunction(const AbstractSimulation &_sim, DemandScenarioList &_scenarios) : sim(_sim), scenarios(_scenarios) {}
-	virtual ~RevenueComputationNativeFunction() {}
+	virtual ~RevenueComputationNativeFunction() = default;
 
 	localsolver::lsdouble call(const localsolver::LSNativeContext& context) override;
 
@@ -22,8 +22,8 @@ private:
 
 class LSOptimizer : public BookingLimitOptimizer {
 public:
-	LSOptimizer(const AbstractSimulation& _sim);
-	Result solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioList> &consumptionScenarios) override;
+	explicit LSOptimizer(const AbstractSimulation& _sim);
+	Result solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios) override;
 private:
 	localsolver::LocalSolver ls;
 	RevenueComputationNativeFunction rfunc;

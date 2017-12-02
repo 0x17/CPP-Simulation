@@ -5,9 +5,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 
-#include <vector>
 #include <iostream>
-#include <array>
 
 #include "Runner.h"
 #include "Simulation.h"
@@ -15,7 +13,6 @@
 #include "LSSolver.h"
 #include "GurobiSolver.h"
 #include "PSSolver.h"
-#include "Helpers.h"
 
 using namespace std;
 
@@ -47,7 +44,7 @@ Config processArguments(const list<string> &args) {
 	string	instanceName = "multi_data.json",
 			solverName = "Gurobi",
 			numScenarios = "150";
-	bool stochasticConsumptions;
+	bool stochasticConsumptions = false;
 
 	auto assignFromArg = [](const string &prefix, const string &arg, string &out) {
 		static auto getRhs = [](const string &line) {
@@ -65,7 +62,7 @@ Config processArguments(const list<string> &args) {
 		out |= algo::equals(toggleStr, arg);
 	};
 
-	for(string arg : args) {
+	for(const string &arg : args) {
 		assignFromArg("instance", arg, instanceName);
 		assignFromArg("solver", arg, solverName);
 		assignFromArg("nscenarios", arg, numScenarios);
@@ -89,13 +86,17 @@ void Runner::commandLine(const list<string> &args) {
 	MultiClassSimulation sim(cfg.instanceName+".json");
 
 	const auto scenarios = sim.generateDemandScenarios(cfg.numScenarios, 42, SamplingType::Descriptive);
-	const boost::optional<ConsumptionScenarioList> consumptionScenarios = cfg.stochasticConsumptions ?
-		sim.generateConsumptionScenarios(cfg.numScenarios, 42, SamplingType::Descriptive) :
-		boost::optional<ConsumptionScenarioList>{};
-
 	auto solverNameToObject = generateSolverNameToObjectMapping(sim);
 	BookingLimitOptimizer *optimizer = solverNameToObject[cfg.solverName]();
-	auto result = optimizer->solve(scenarios, consumptionScenarios);
+
+	Result result;
+	if(cfg.stochasticConsumptions) {
+		ConsumptionScenarioList cs = sim.generateConsumptionScenarios(cfg.numScenarios, 42, SamplingType::Descriptive);
+		const boost::optional<ConsumptionScenarioList&> consumptionScenarios = cs;
+		result = optimizer->solve(scenarios, consumptionScenarios);
+	} else {
+		result = optimizer->solve(scenarios, {});
+	}
 	cout << "Result = " << result.toString() << endl;
 	delete optimizer;
 }
@@ -149,10 +150,43 @@ void Runner::benchmark(const string &dir) {
 
 		for(const string &solverName : solverNames) {
 			auto optimizer = solverNameToObject[solverName]();
-			auto result = optimizer->solve(scenarios);
+			auto result = optimizer->solve(scenarios, {});
 			string bookingLimitsStr = constructBookingLimitsString(result.bookingLimits);
 			Helpers::spitAppend(instanceName + ";" + to_string(result.profit) + ";" + bookingLimitsStr + "\n", solverName + "Results.txt");
 			delete optimizer;
 		}
+	}
+}
+
+void Runner::runOptimizers() {
+	const int ntries = 150;
+
+	cout << "Number of scenarios: " << ntries << endl << endl;
+
+	//MultiClassSimulation sim("multi_data_big.json");
+	MultiClassSimulation sim("multi_data.json");
+	//MultiClassSimulation sim("vonfolie.json");
+	//MultiClassSimulation sim("Instances/pinstance1.json");
+
+	EvaluatorMultiDimensional evl(sim);
+	LSOptimizer ls(sim);
+	GurobiOptimizer gurobi(sim);
+	PSSolver ps(sim);
+
+	vector<BookingLimitOptimizer *> optimizers = { &evl, &ls, &gurobi, &ps };
+	//vector<BookingLimitOptimizer *> optimizers = { &gurobi };
+
+	auto scenarios = sim.generateDemandScenarios(ntries, 42, SamplingType::Descriptive);
+
+	list<pair<string, Result>> results;
+
+	for (auto optimizer : optimizers) {
+		results.emplace_back(optimizer->getName(), optimizer->solve(scenarios, {}));
+	}
+
+	for (auto res : results) {
+		cout << endl << res.first << " results:" << endl;
+		cout << res.second.toString() << endl << endl;
+		cout << "Comparison objective: " << sim.averageRevenueOfSimulation(res.second.bookingLimits, scenarios) << endl;
 	}
 }

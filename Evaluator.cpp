@@ -29,7 +29,7 @@ Result AbstractEvaluator::extractOptimumFromList(const ResultList& results, bool
 	return optResult;
 }
 
-Result AbstractEvaluator::solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioList> &consumptionScenarios) {
+Result AbstractEvaluator::solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios) {
 	Stopwatch sw;
 	sw.start();
 	/*auto res = collectResults(scenarios);
