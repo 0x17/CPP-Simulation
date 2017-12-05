@@ -2,8 +2,7 @@
 // Created by André Schnabel on 05.11.15.
 //
 
-#ifndef CPP_RCPSP_OC_MATRIX_H
-#define CPP_RCPSP_OC_MATRIX_H
+#pragma once
 
 #include <vector>
 #include <sstream>
@@ -125,5 +124,5 @@ public:
 	}
 };
 
-
-#endif //CPP_RCPSP_OC_MATRIX_H
+template<class T>
+using Matrix2D = Matrix<T>;

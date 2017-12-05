@@ -63,6 +63,6 @@ TEST_F(MultiClassSimulationTest, testPickDemandsDescriptive) {
     DemandScenario scenario = mcs->pickDemandsDescriptive(lutList);
     for(int cix = 0; cix < mcs->getNumClasses(); cix++) {
         Customer c = mcs->getCustomer(cix);
-        ASSERT_TRUE(std::fabs((double)c.expD - scenario[cix]) < eps);
+        ASSERT_TRUE(std::fabs((double)c.expD - scenario[cix]) <= eps);
     }
 }

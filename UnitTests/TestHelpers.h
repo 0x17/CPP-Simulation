@@ -2,13 +2,13 @@
 // Created by André Schnabel on 28.01.16.
 //
 
-#ifndef CPP_RCPSP_OC_TESTHELPERS_H
-#define CPP_RCPSP_OC_TESTHELPERS_H
+#pragma once
 
 #include <vector>
 #include <list>
 #include <gtest/gtest.h>
 #include "../Matrix.h"
+#include "../Matrix3D.h"
 
 class TestHelpers {
 public:
@@ -36,7 +36,15 @@ public:
 			for (int j = 0; j < actual.getN(); j++)
 				ASSERT_EQ(expected(i, j), actual(i, j)) << "i=" << i << ",j=" << j << std::endl;
     }
+
+    template<class T>
+    static void matrixEquals(Matrix3D<T> &expected, Matrix3D<T> &actual) {
+        ASSERT_EQ(expected.getL(), actual.getL());
+        ASSERT_EQ(expected.getM(), actual.getM());
+        ASSERT_EQ(expected.getN(), actual.getN());
+        for (int h = 0; h < actual.getL(); h++)
+            for (int i = 0; i < actual.getM(); i++)
+                for (int j = 0; j < actual.getN(); j++)
+                    ASSERT_EQ(expected(h, i, j), actual(h, i, j)) << "h=" << h << ",i=" << i << ",j=" << j << std::endl;
+    }
 };
-
-
-#endif //CPP_RCPSP_OC_TESTHELPERS_H
