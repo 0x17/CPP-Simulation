@@ -106,7 +106,8 @@ TEST_F(MatrixTest, testColumn) {
 }
 
 TEST_F(MatrixTest, testForeach) {
-	Matrix<char> entryVisited(3, 4, 0);
+	Matrix<char> entryVisited(3, 4);
+	entryVisited.zeroOut();
 	m->foreach([&entryVisited](int i, int j, int mij) { ASSERT_EQ(i * 4 + j + 1, mij); entryVisited(i, j) = 1; });
 	for (int i = 0; i<3; i++)
 		for (int j = 0; j<4; j++)
@@ -114,7 +115,8 @@ TEST_F(MatrixTest, testForeach) {
 }
 
 TEST_F(MatrixTest, testForeach2) {
-	Matrix<char> entryVisited(3, 4, 0);
+	Matrix<char> entryVisited(3, 4);
+	entryVisited.zeroOut();
 	m->foreach2([&entryVisited](int i, int j) {  entryVisited(i, j) = 1; });
 	for(int i=0; i<3; i++)
 		for(int j=0; j<4; j++)
@@ -122,7 +124,8 @@ TEST_F(MatrixTest, testForeach2) {
 }
 
 TEST_F(MatrixTest, testForeachAssign) {
-	Matrix<char> entryVisited(3, 4, 0);
+	Matrix<char> entryVisited(3, 4);
+	entryVisited.zeroOut();
 	entryVisited.foreachAssign([](int i, int j) {  return 1; });
 	for (int i = 0; i<3; i++)
 		for (int j = 0; j<4; j++)

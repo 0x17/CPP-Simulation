@@ -40,13 +40,13 @@ private:
 
 PSSolver::PSSolver(const AbstractSimulation &_sim) : BookingLimitOptimizer("ParticleSwarm", _sim) {}
 
-Result PSSolver::solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios) {
+Result PSSolver::solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
 	const int	iterlimit = -1,
 				swarmSize = 20;
 	const double timelimit = globals::TIME_LIMIT;
 
 	auto objective = [&](vector<int> bookingLimits) {
-		return sim.objectiveWithGlobalSettings(bookingLimits, scenarios);
+		return sim.objectiveWithCVarOption(bookingLimits, scenarios);
 	};
 
 	Swarm s(swarmSize, sim.getNumClasses(), sim.getC(), objective, heuristicBookingLimits);

@@ -30,14 +30,21 @@ void CustomCallback::callback() {
 	}
 }
 
-vector<GRBVar> modelBuilderForOldFormulation(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios);
-vector<GRBVar> modelBuilderForNewFormulation(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios);
-vector<GRBVar> modelBuilderForConditionalValueAtRisk(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios);
-vector<GRBVar> modelBuilderForEconomiesOfScale(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios);
-vector<GRBVar> modelBuilderForStochasticConsumptions(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios);
+struct BookingAcceptVars {
+	vector<GRBVar> bcj;
+	Matrix<GRBVar> njs;
+};
 
-Result GurobiOptimizer::solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios) {
-	auto assertSingleToggle = [](const vector<bool> &toggles) {
+BookingAcceptVars modelBuilderForOldFormulation(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc);
+BookingAcceptVars modelBuilderForNewFormulation(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc);
+BookingAcceptVars modelBuilderForEconomiesOfScale(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc);
+BookingAcceptVars modelBuilderForStochasticConsumptions(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc);
+BookingAcceptVars modelBuilderForStochasticEconomiesOfScale(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc);
+BookingAcceptVars modelBuilderForConditionalValueAtRisk(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc);
+
+Result GurobiOptimizer::solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
+	auto assertSingleToggle = [](const Toggles &toggleObj) {
+		const vector<bool> &toggles = toggleObj.toVec();
 		auto b2int = [](bool b) -> int { return b ? 1 : 0;  };
 		vector<int> nums(toggles.size());
 		std::transform(toggles.begin(), toggles.end(), nums.begin(), b2int);
@@ -47,22 +54,26 @@ Result GurobiOptimizer::solve(const DemandScenarioList& scenarios, const boost::
 		}
 	};
 
-	vector<bool> toggles = { globals::ECONOMY_OF_SCALE_ENABLED, globals::CONDITIONAL_VALUE_AT_RISK_ENABLED, globals::STOCHASTIC_CONSUMPTIONS_ENABLED };
+	const Toggles toggles = sim.getToggles();
+
 	assertSingleToggle(toggles);
 
-	auto chooseModelBuilder = [](bool economiesOfScale, bool conditionalValueAtRisk, bool stochasticConsumptions) {
-		if(economiesOfScale) return modelBuilderForEconomiesOfScale;
-		if(conditionalValueAtRisk) return modelBuilderForConditionalValueAtRisk;
-		if(stochasticConsumptions) return modelBuilderForStochasticConsumptions;
+	auto chooseModelBuilder = [](const Toggles &toggles) {
+		if(toggles.economyOfScale && toggles.stochasticConsumptions) return modelBuilderForStochasticEconomiesOfScale;
+		if(toggles.economyOfScale) return modelBuilderForEconomiesOfScale;
+		//if(toggles.conditionalValueAtRisk) return modelBuilderForConditionalValueAtRisk;
+		if(toggles.stochasticConsumptions) return modelBuilderForStochasticConsumptions;
 		return modelBuilderForNewFormulation;
 	};
 
-	auto modelBuilder = chooseModelBuilder(globals::ECONOMY_OF_SCALE_ENABLED, globals::CONDITIONAL_VALUE_AT_RISK_ENABLED, globals::STOCHASTIC_CONSUMPTIONS_ENABLED);
-	return solveCommon(scenarios, consumptionScenarios, modelBuilder);
+	auto modelBuilder = chooseModelBuilder(toggles);
+	return solveCommon(scenarios, consumptionScenarioFunc, modelBuilder);
 }
 
+void addConditionalValueAtRiskConsiderationToModel(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const Matrix<GRBVar> &njs);
+
 template<class Func>
-Result GurobiOptimizer::solveCommon(const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios, Func modelBuilder) {
+Result GurobiOptimizer::solveCommon(const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc, Func modelBuilder) {
 	GRBEnv env;
 	env.set(GRB_DoubleParam_MIPGap, 0.0);
 	env.set(GRB_DoubleParam_TimeLimit, /*GRB_INFINITY*/ globals::TIME_LIMIT);
@@ -70,7 +81,13 @@ Result GurobiOptimizer::solveCommon(const DemandScenarioList &scenarios, const b
 
 	GRBModel model(env);
 
-	vector<GRBVar> bcj = modelBuilder(sim, model, scenarios, consumptionScenarios);
+	BookingAcceptVars pair = modelBuilder(sim, model, scenarios, consumptionScenarioFunc);
+	auto bcj = pair.bcj;
+    auto njs = pair.njs;
+
+    if(sim.getToggles().CVaR) {
+        addConditionalValueAtRiskConsiderationToModel(sim, model, scenarios, njs);
+    }
 
 	if (heuristicBookingLimits) {
 		for (int j = 0; j<scenarios.getN(); j++) {
@@ -157,7 +174,7 @@ GRBLinExpr sum3D(int ub1, int ub2, int ub3, Func f) {
 	return result;
 }
 
-vector<GRBVar> modelBuilderForOldFormulation(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios) {
+BookingAcceptVars modelBuilderForOldFormulation(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
 	int J = sim.getNumClasses(),
 		C = sim.getC(),
 		S = scenarios.getM();
@@ -188,10 +205,10 @@ vector<GRBVar> modelBuilderForOldFormulation(const AbstractSimulation &sim, GRBM
 		}
 	}
 
-	return bcj;
+	return {bcj, njs};
 }
 
-vector<GRBVar> modelBuilderForEconomiesOfScale(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios) {
+BookingAcceptVars modelBuilderForEconomiesOfScale(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
 	int J = sim.getNumClasses(),
 		C = sim.getC(),
 		S = scenarios.getM(),
@@ -248,10 +265,10 @@ vector<GRBVar> modelBuilderForEconomiesOfScale(const AbstractSimulation &sim, GR
 
 	//cout << "EPISLON2: " << globals::EPSILON2 << endl;
 
-	return bcj;
+	return {bcj, njs};
 }
 
-std::pair<vector<GRBVar>, Matrix<GRBVar>> modelBuilderForNewFormulationWithPair(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios) {
+BookingAcceptVars modelBuilderForNewFormulation(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
 	int J = sim.getNumClasses(),
 			C = sim.getC(),
 			S = scenarios.getM();
@@ -286,25 +303,21 @@ std::pair<vector<GRBVar>, Matrix<GRBVar>> modelBuilderForNewFormulationWithPair(
 		}
 	}
 
-	return make_pair(bcj, njs);
-}
-
-vector<GRBVar> modelBuilderForNewFormulation(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios) {
-	return modelBuilderForNewFormulationWithPair(sim, model, scenarios).first;
+	return {bcj, njs};
 }
 
 void addConditionalValueAtRiskConsiderationToModel(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const Matrix<GRBVar> &njs) {
 	int J = sim.getNumClasses(),
 		S = scenarios.getM();
 
-	double cvarUpperBound = ceil(sim.getC() / sim.getCustomer(0).consumptionPerReqMean) * sim.getCustomer(0).revenuePerReq;
-	GRBVar cvar = model.addVar(0.0, cvarUpperBound, 0.0, GRB_CONTINUOUS, "CVaR");
+	const double cvarUpperBound = ceil(sim.getC() / sim.getCustomer(0).consumptionPerReqMean) * sim.getCustomer(0).revenuePerReq;
+	const GRBVar cvar = model.addVar(0.0, cvarUpperBound, 0.0, GRB_CONTINUOUS, "CVaR");
 
-	GRBVar omega0 = model.addVar(0.0, GRB_INFINITY, 0.0, GRB_CONTINUOUS, "omega0");
+	const GRBVar omega0 = model.addVar(0.0, GRB_INFINITY, 0.0, GRB_CONTINUOUS, "omega0");
 	vector<GRBVar> omega_s = Helpers::constructVector<GRBVar>(S, [&](int s) { return model.addVar(0.0, GRB_INFINITY, 0.0, GRB_CONTINUOUS, "omega_s=" + to_string(s)); });
 
-	const double profitWeight = 0.5;
-	const double alpha = 0.6;
+	const double profitWeight = sim.getPsi();
+	const double alpha = sim.getAlpha();
 
 	vector<GRBVar> G_s = Helpers::constructVector<GRBVar>(S, [&](int s) { return model.addVar(0.0, GRB_INFINITY, 0.0, GRB_CONTINUOUS, "G_s=" + to_string(s));  });
 
@@ -316,14 +329,14 @@ void addConditionalValueAtRiskConsiderationToModel(const AbstractSimulation &sim
 	}
 }
 
-vector<GRBVar> modelBuilderForConditionalValueAtRisk(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios) {
-	auto pair = modelBuilderForNewFormulationWithPair(sim, model, scenarios);
-	addConditionalValueAtRiskConsiderationToModel(sim, model, scenarios, pair.second);
-	return pair.first;
+BookingAcceptVars modelBuilderForConditionalValueAtRisk(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
+	auto pair = modelBuilderForNewFormulation(sim, model, scenarios, {});
+	addConditionalValueAtRiskConsiderationToModel(sim, model, scenarios, pair.njs);
+	return pair;
 }
 
-vector<GRBVar> modelBuilderForStochasticConsumptions(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios) {
-	if (!consumptionScenarios.is_initialized()) {
+BookingAcceptVars modelBuilderForStochasticConsumptions(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
+	if (!consumptionScenarioFunc.is_initialized()) {
 		throw runtime_error("No consumption scenarios provided for stochastic consumption model!");
 	}
 
@@ -331,7 +344,7 @@ vector<GRBVar> modelBuilderForStochasticConsumptions(const AbstractSimulation &s
 		C = sim.getC(),
 		S = scenarios.getM();
 
-	auto cjs = [&](int j, int s) { return (consumptionScenarios.get())(s, j); };
+	auto cjs = [&](int j, int s) { return (consumptionScenarioFunc.get())(0, s, j); };
 	auto rj = [&](int j) { return sim.getCustomer(j).revenuePerReq; };
 
 	vector<GRBVar> bcj = Helpers::constructVector<GRBVar>(J, [&](int j) { return model.addVar(j == 0 ? C : 0, C, 0.0, GRB_INTEGER, "bcj" + to_string(j)); });
@@ -361,5 +374,63 @@ vector<GRBVar> modelBuilderForStochasticConsumptions(const AbstractSimulation &s
 		}
 	}
 
-	return bcj;
+	return {bcj, njs};
+}
+
+BookingAcceptVars modelBuilderForStochasticEconomiesOfScale(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
+	int J = sim.getNumClasses(),
+			C = sim.getC(),
+			S = scenarios.getM(),
+			U = C + 1;
+
+	auto rj = [&](int j) { return sim.getCustomer(j).revenuePerReq; };
+
+    auto cjsu = [&](int j, int s, int u) { return (consumptionScenarioFunc.get())(u, s, j); };
+
+	vector<GRBVar> bcj = Helpers::constructVector<GRBVar>(J, [&](int j) { return model.addVar(j == 0 ? C : 0, C, 0.0, GRB_INTEGER, "bcj" + to_string(j)); });
+
+	vector<Matrix<GRBVar>> njsu = Helpers::constructVector<Matrix<GRBVar>>(J, [&](int j) {
+		Matrix<GRBVar> nsu(S, U, [&](int s, int u) {
+			string caption = "njsu" + to_string(j) + "," + to_string(s) + "," + to_string(u);
+			return model.addVar(0.0, 1.0, 0.0, GRB_BINARY, caption);
+		});
+		return nsu;
+	});
+
+	vector<Matrix<GRBVar>> nbjsu = Helpers::constructVector<Matrix<GRBVar>>(J, [&](int j) {
+		Matrix<GRBVar> nbsu(S, U, [&](int s, int u) {
+			string caption = "nbjsu" + to_string(j) + "," + to_string(s) + "," + to_string(u);
+			return model.addVar(0.0, 1.0, 0.0, GRB_BINARY, caption);
+		});
+		return nbsu;
+	});
+
+	Matrix<GRBVar> njs(J, S, [&](int j, int s) { return model.addVar(0, C, 0.0, GRB_INTEGER, "njs" + to_string(j) + "," + to_string(s)); });
+	Matrix<GRBVar> nbjs(J, S, [&](int j, int s) { return model.addVar(0, C, 0.0, GRB_INTEGER, "nbjs" + to_string(j) + "," + to_string(s)); });
+
+	//model.setObjective(1.0 / (double)S * sum3D(J, S ,U, [&](int j, int s, int u) {  return njsu[j](s, u) * u * rj(j); }), GRB_MAXIMIZE);
+	model.setObjective(1.0 / (double)S * sum2D(J, S, [&](int j, int s) {  return njs(j, s) * rj(j); }), GRB_MAXIMIZE);
+
+	for (int j = 0; j < J; j++) {
+		if (j + 1 < J)
+			model.addConstr(bcj[j] >= bcj[j + 1]);
+
+		for (int s = 0; s < S; s++) {
+			model.addConstr(sum(U, [&](int u) { return njsu[j](s, u); }) == 1);
+			model.addConstr(sum(U, [&](int u) { return nbjsu[j](s, u); }) == 1);
+
+			model.addConstr(sum(U, [&](int u) { return njsu[j](s, u) * u; }) == njs(j, s));
+			model.addConstr(sum(U, [&](int u) { return nbjsu[j](s, u) * u; }) == nbjs(j, s));
+
+			GRBVar nbjsarr[] = { nbjs(j,s) };
+			model.addGenConstrMin(njs(j, s), nbjsarr, 1, scenarios(s, j));
+
+			model.addConstr(sum2D(j + 1, J, 0, U, [&](int i, int u) { return njsu[i](s, u) * u * cjsu(i, s, u); }) + sum(U, [&](int u) { return nbjsu[j](s, u) * u * cjsu(j, s, u); }) <= bcj[j]);
+			model.addConstr(sum2D(j + 1, J, 0, U, [&](int i, int u) { return njsu[i](s, u) * u * cjsu(i, s, u); }) + sum(U, [&](int u) { return nbjsu[j](s, u) * (u + 1) * cjsu(j, s, u + 1); }) >= bcj[j] + globals::EPSILON2);
+		}
+	}
+
+	//cout << "EPISLON2: " << globals::EPSILON2 << endl;
+
+	return { bcj, njs};
 }

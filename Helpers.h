@@ -13,6 +13,7 @@
 #include <list>
 #include <memory>
 #include "Stopwatch.h"
+#include "json11.hpp"
 
 namespace Helpers {
 
@@ -24,6 +25,7 @@ namespace Helpers {
 	}
 
     std::string slurp(const std::string& filename);
+	json11::Json readJsonFromFile(const std::string &filename);
 
 	void resetSeed(int seed);
     double pickNormal(double mean, double stddev);

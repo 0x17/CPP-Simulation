@@ -2,13 +2,21 @@
 // Created by André Schnabel on 30.10.16.
 //
 
-#ifndef CPP_SIMULATION_SIMULATION_H
-#define CPP_SIMULATION_SIMULATION_H
+#pragma once
 
 #include <boost/optional.hpp>
 #include "json11.hpp"
 #include "Matrix.h"
 #include "Helpers.h"
+#include "Matrix3D.h"
+
+struct Toggles {
+	bool economyOfScale, CVaR, stochasticConsumptions;
+
+	explicit Toggles(const std::string& filename = "Toggles.json");
+
+	std::vector<bool> toVec() const;
+};
 
 struct Customer {
     std::string name;
@@ -27,6 +35,7 @@ using DemandScenarioList = Matrix<int>;
 
 using ConsumptionScenario = std::vector<double>;
 using ConsumptionScenarioList = Matrix<double>;
+using ConsumptionScenarioFunc = Matrix3D<double>;
 
 using LUTList = std::vector<std::vector<double>>;
 
@@ -43,16 +52,17 @@ LUTList generateLookupTableList(int nclasses, int ntries, const std::vector<Dist
 
 class AbstractSimulation {
 public:
-    explicit AbstractSimulation(const std::string &dataFilename);
+    explicit AbstractSimulation(const std::string &dataFilename, Toggles _toggles);
 	virtual ~AbstractSimulation() = default;
 
     DemandScenario pickDemands() const;
 	DemandScenario pickDemandsDescriptive(LUTList& lutList) const;
     DemandScenarioList generateDemandScenarios(int ntries, int seed, SamplingType stype = SamplingType::Descriptive) const;
 
-	ConsumptionScenario pickConsumptions() const;
+	ConsumptionScenario pickConsumptions(int u) const;
 	ConsumptionScenario pickConsumptionsDescriptive(LUTList& lutList) const;
-	ConsumptionScenarioList generateConsumptionScenarios(int ntries, int seed, SamplingType stype = SamplingType::Descriptive) const;
+	ConsumptionScenarioList generateConsumptionScenarios(int u, int ntries, int seed, SamplingType stype = SamplingType::Descriptive) const;
+	ConsumptionScenarioFunc generateConsumptionScenarioFunc(int ntries, int seed, SamplingType stype = SamplingType::Descriptive, int maxAccept = -1) const;
 
     std::vector<double> runSimulation(const std::vector<int>& bookingLimits, const DemandScenarioList &scenarios) const;
 
@@ -60,7 +70,7 @@ public:
 	double conditionalValueAtRiskOfSimulationResult(double alpha, const std::vector<double> &revenues) const;
 	double weightedProfitAndCVaRofSimulationResult(double profitWeight, double alpha, const std::vector<double> &revenues) const;
 
-	double objectiveWithGlobalSettings(const std::vector<int>& bookingLimits, const DemandScenarioList& scenarios) const;
+	double objectiveWithCVarOption(const std::vector<int>& bookingLimits, const DemandScenarioList& scenarios) const;
 
 	virtual double objective(const std::vector<int> &demands, const std::vector<int> &bookingLimits) const = 0;
 
@@ -73,24 +83,34 @@ public:
 	Customer getCustomer(int ix) const { return customers[ix];  }
 
     std::vector<DistParameters> demandDistributionParametersForCustomers() const;
-    std::vector<DistParameters> consumptionDistributionParametersForCustomers() const;
+    std::vector<DistParameters> consumptionDistributionParametersForCustomers(int u) const;
 
 	static std::vector<double> statisticalMeansOfScenarios(DemandScenarioList &scenarios);
 	static std::vector<double> statisticalStandardDeviationsOfScenarios(DemandScenarioList &scenarios);
 
+	virtual DistParameters eosConsumptionDistributionParametersForCustomer(int j, int u) const = 0;
+
+	Toggles getToggles() const;
+
+	void setRiskAversionParameters(double _alpha, double _psi);
+	double getAlpha() const { return alpha;  }
+	double getPsi() const { return psi; }
+
 protected:
+	Toggles toggles;
 	int C;
     std::vector<Customer> customers;
     int numClasses;
+	double alpha, psi;
 };
 
 struct Result {
 	std::vector<int> bookingLimits;
 	double profit;
 
-	Result() : bookingLimits(0), profit(0) {}
-    explicit Result(int numClasses) : bookingLimits((unsigned long)numClasses), profit(0) {}
-	Result(const std::vector<int>& booking_limits, double profit) : bookingLimits(booking_limits), profit(profit) {}
+	Result();
+	explicit Result(int numClasses);
+	Result(const std::vector<int>& booking_limits, double profit);
 
 	std::string toString() const;
 };
@@ -100,16 +120,12 @@ using ResultList = std::vector<Result>;
 class BookingLimitOptimizer {
 	const bool useHeuristicStart = false;
 public:
-	BookingLimitOptimizer(std::string _name, const AbstractSimulation &_sim) : sim(_sim), name(_name) {
-		if (useHeuristicStart) {
-			heuristicBookingLimits = sim.heuristicPolicy();
-		}
-	}
+	BookingLimitOptimizer(std::string _name, const AbstractSimulation& _sim);
 	virtual ~BookingLimitOptimizer() = default;
 
-	virtual Result solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios) = 0;
+	virtual Result solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) = 0;
 
-	std::string getName() const { return name; }
+	std::string getName() const;
 
 protected:
 	const AbstractSimulation &sim;
@@ -120,20 +136,20 @@ private:
 
 class TwoClassSimulation : public AbstractSimulation {
 public:
-    explicit TwoClassSimulation(const std::string &dataFilename) : AbstractSimulation(dataFilename) {}
+	explicit TwoClassSimulation(const std::string& dataFilename, Toggles _toggles);
     double objective(const std::vector<int>& demands, const std::vector<int>& bookingLimits) const override;
 	OptionalPolicy heuristicPolicy() const override;
 	OptionalPolicy optimalPolicy() const override;
+	DistParameters eosConsumptionDistributionParametersForCustomer(int j, int u) const override;
 };
 
 class MultiClassSimulation : public AbstractSimulation {
 public:
-    explicit MultiClassSimulation(const std::string &dataFilename = "multi_data.json") : AbstractSimulation(dataFilename) {}
+	explicit MultiClassSimulation(const std::string& dataFilename, Toggles _toggles);
     double objective(const std::vector<int>& demands, const std::vector<int>& bookingLimits) const override;
 	OptionalPolicy heuristicPolicy() const override;
 	OptionalPolicy optimalPolicy() const override;
 	double eosConsumption(int j, int u) const;
+	DistParameters eosConsumptionDistributionParametersForCustomer(int j, int u) const override;
 };
 
-
-#endif //CPP_SIMULATION_SIMULATION_H

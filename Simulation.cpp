@@ -11,8 +11,13 @@
 #include "Helpers.h"
 #include "Globals.h"
 #include <boost/algorithm/clamp.hpp>
+#include <boost/filesystem.hpp>
 
 using namespace std;
+
+Result::Result(): bookingLimits(0), profit(0) {}
+Result::Result(const int _numClasses): bookingLimits((unsigned long)_numClasses), profit(0) {}
+Result::Result(const std::vector<int>& _booking_limits, double _profit): bookingLimits(_booking_limits), profit(_profit) {}
 
 string Result::toString() const {
 	bool first = true;
@@ -26,12 +31,19 @@ string Result::toString() const {
     return out;
 }
 
-AbstractSimulation::AbstractSimulation(const string &dataFilename) {
-    string errMsg;
-    auto obj = json11::Json::parse(Helpers::slurp(dataFilename), errMsg);
-	if(!errMsg.empty()) {
-		throw runtime_error("Unable to parse " + dataFilename + " error = " + errMsg);
+BookingLimitOptimizer::BookingLimitOptimizer(std::string _name, const AbstractSimulation& _sim) :
+	sim(_sim),
+	name(_name)
+{
+	if(useHeuristicStart) {
+		heuristicBookingLimits = sim.heuristicPolicy();
 	}
+}
+
+std::string BookingLimitOptimizer::getName() const { return name; }
+
+AbstractSimulation::AbstractSimulation(const string &dataFilename, Toggles _toggles) : toggles(_toggles) {
+	auto obj = Helpers::readJsonFromFile(dataFilename);
     C = obj["capacity"].int_value();
 	for(const auto &c : obj["clients"].array_items()) {
 		customers.emplace_back(c);
@@ -52,7 +64,7 @@ double AbstractSimulation::averageRevenueOfSimulation(const std::vector<int>& bo
 }
 
 double AbstractSimulation::conditionalValueAtRiskOfSimulationResult(double alpha, const std::vector<double> &revenues) const {
-	int numWorstScenarios = round((1 - alpha) * revenues.size());
+	const int numWorstScenarios = (int)round((1 - alpha) * revenues.size());
 	std::vector<double> rcopy(revenues);
 	sort(rcopy.begin(), rcopy.end());
 	return Helpers::vecAverageSubRange(rcopy, 0, numWorstScenarios);
@@ -64,9 +76,9 @@ double AbstractSimulation::weightedProfitAndCVaRofSimulationResult(double profit
 	return profitWeight * avgProfit + (1 - profitWeight) * cvar;
 }
 
-double AbstractSimulation::objectiveWithGlobalSettings(const std::vector<int>& bookingLimits, const DemandScenarioList& scenarios) const {
+double AbstractSimulation::objectiveWithCVarOption(const std::vector<int>& bookingLimits, const DemandScenarioList& scenarios) const {
 	auto revenues = runSimulation(bookingLimits, scenarios);
-	return globals::CONDITIONAL_VALUE_AT_RISK_ENABLED ? weightedProfitAndCVaRofSimulationResult(globals::PROFIT_WEIGHT, globals::ALPHA, revenues) : Helpers::vecAverage(revenues);
+	return toggles.CVaR ? weightedProfitAndCVaRofSimulationResult(psi, alpha, revenues) : Helpers::vecAverage(revenues);
 }
 
 vector<double> AbstractSimulation::statisticalMeansOfScenarios(DemandScenarioList& scenarios) {
@@ -100,6 +112,16 @@ vector<double> AbstractSimulation::statisticalStandardDeviationsOfScenarios(Dema
 	return stddevs;
 }
 
+Toggles AbstractSimulation::getToggles() const { return toggles; }
+
+void AbstractSimulation::setRiskAversionParameters(double _alpha, double _psi) {
+	alpha = _alpha;
+	psi = _psi;
+}
+
+TwoClassSimulation::TwoClassSimulation(const std::string& dataFilename, Toggles _toggles): AbstractSimulation(dataFilename, _toggles) {
+}
+
 double TwoClassSimulation::objective(const vector<int>& demands, const vector<int>& bookingLimits) const {
 	int n2 = (int)floor(min((double)bookingLimits[1], demands[1] * customers[1].consumptionPerReqMean) / customers[1].consumptionPerReqMean);
 	int n1 = (int)floor(min(demands[0] * customers[0].consumptionPerReqMean, C - n2 * customers[1].consumptionPerReqMean));
@@ -122,13 +144,20 @@ OptionalPolicy TwoClassSimulation::optimalPolicy() const {
 	return OptionalPolicy();
 }
 
+DistParameters TwoClassSimulation::eosConsumptionDistributionParametersForCustomer(int u, int j) const {
+    return DistParameters { customers[j].consumptionPerReqMean, customers[j].consumptionPerReqStdDev };
+}
+
+MultiClassSimulation::MultiClassSimulation(const std::string& dataFilename, Toggles _toggles): AbstractSimulation(dataFilename, _toggles) {
+}
+
 double MultiClassSimulation::objective(const vector<int>& demands, const vector<int>& bookingLimits) const {
 	double	residualCapacity = C,
 			profit = 0.0;
 
 	for(int ix = numClasses - 1; ix >= 0; ix--) {
 		int n;
-		if (globals::ECONOMY_OF_SCALE_ENABLED) {
+		if (toggles.economyOfScale) {
 			double blCapacityLeft = (bookingLimits[ix] - (C - residualCapacity));
 			int fittingInBL = 0;
 			for (int k = 1; k <= ceil(blCapacityLeft); k++) {
@@ -169,6 +198,12 @@ double MultiClassSimulation::eosConsumption(int j, int u) const {
 	double deltaX = customers[j].expD;
 	double deltaY = customers[j].consumptionPerReqMean * 0.2;
 	return max(1.0, customers[j].consumptionPerReqMean - (boost::math::erf(4 * u / deltaX - 2) * deltaY / 2.0 + deltaY / 2.0));
+}
+
+DistParameters MultiClassSimulation::eosConsumptionDistributionParametersForCustomer(int j, int u) const {
+    double mu = eosConsumption(j, u);
+    double sigma = mu / 10.0;
+    return DistParameters { mu, sigma };
 }
 
 template<class T>
@@ -231,16 +266,25 @@ DemandScenarioList AbstractSimulation::generateDemandScenarios(int ntries, int s
 	return generateScenarios<int>(customers.size(), demandDistributionParametersForCustomers(), ntries, seed, stype, true);
 }
 
-ConsumptionScenario AbstractSimulation::pickConsumptions() const {
-	return pickScenario<double>(numClasses, consumptionDistributionParametersForCustomers(), false);
+ConsumptionScenario AbstractSimulation::pickConsumptions(int u) const {
+	return pickScenario<double>(numClasses, consumptionDistributionParametersForCustomers(u), false);
 }
 
 ConsumptionScenario AbstractSimulation::pickConsumptionsDescriptive(LUTList& lutList) const {
 	return pickScenarioDescriptive<double>(customers.size(), lutList, false);
 }
 
-ConsumptionScenarioList AbstractSimulation::generateConsumptionScenarios(int ntries, int seed, SamplingType stype) const {
-	return generateScenarios<double>(customers.size(), consumptionDistributionParametersForCustomers(), ntries, seed, stype, false);
+ConsumptionScenarioList AbstractSimulation::generateConsumptionScenarios(int u, int ntries, int seed, SamplingType stype) const {
+	return generateScenarios<double>(customers.size(), consumptionDistributionParametersForCustomers(u), ntries, seed, stype, false);
+}
+
+ConsumptionScenarioFunc AbstractSimulation::generateConsumptionScenarioFunc(int ntries, int seed, SamplingType stype, int maxAccept) const {
+	if(maxAccept == -1) maxAccept = C;
+    ConsumptionScenarioFunc scenarioFunc(maxAccept+1, ntries, customers.size());
+    for(int u=0; u<=maxAccept; u++) {
+        scenarioFunc.setMatrix(u, generateConsumptionScenarios(u, ntries, seed, stype));
+    }
+    return scenarioFunc;
 }
 
 std::vector<DistParameters> AbstractSimulation::demandDistributionParametersForCustomers() const {
@@ -249,9 +293,9 @@ std::vector<DistParameters> AbstractSimulation::demandDistributionParametersForC
     });
 }
 
-std::vector<DistParameters> AbstractSimulation::consumptionDistributionParametersForCustomers() const {
-    return Helpers::constructVector<DistParameters>(getNumClasses(), [this](int ix) {
-        return DistParameters { customers[ix].consumptionPerReqMean, customers[ix].consumptionPerReqStdDev };
+std::vector<DistParameters> AbstractSimulation::consumptionDistributionParametersForCustomers(int u) const {
+    return Helpers::constructVector<DistParameters>(getNumClasses(), [this,u](int ix) {
+        return eosConsumptionDistributionParametersForCustomer(ix, u);
     });
 }
 
@@ -261,6 +305,27 @@ LUTList generateLookupTableList(int nclasses, int ntries, const std::vector<Dist
         lookupTables[i] = Helpers::generateNormalDistributionDescriptiveSamplingLUT(ntries, distParams[i].mean, distParams[i].stddev);
     }
     return lookupTables;
+}
+
+Toggles::Toggles(const std::string& filename) {
+	if(boost::filesystem::exists(filename)) {
+		auto obj = Helpers::readJsonFromFile(filename);
+		auto keyToField = std::map<std::string, bool &>{
+				{"economyOfScale",         economyOfScale},
+				{"CVaR",                   CVaR},
+				{"stochasticConsumptions", stochasticConsumptions}
+		};
+		for (auto pair : keyToField) {
+			assert(obj[pair.first].is_bool());
+			pair.second = obj[pair.first].bool_value();
+		}
+	} else {
+		economyOfScale = CVaR = stochasticConsumptions = false;
+	}
+}
+
+std::vector<bool> Toggles::toVec() const {
+	return {economyOfScale, CVaR, stochasticConsumptions};
 }
 
 Customer::Customer(const json11::Json &obj) :

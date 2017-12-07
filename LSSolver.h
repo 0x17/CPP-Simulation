@@ -12,7 +12,7 @@ public:
 
 	localsolver::lsdouble call(const localsolver::LSNativeContext& context) override;
 
-	void setScenarios(const DemandScenarioList &_scenarios) { this->scenarios = _scenarios; }
+	void setScenarios(const DemandScenarioList &_scenarios) const { this->scenarios = _scenarios; }
 
 private:
 	const AbstractSimulation &sim;
@@ -23,7 +23,7 @@ private:
 class LSOptimizer : public BookingLimitOptimizer {
 public:
 	explicit LSOptimizer(const AbstractSimulation& _sim);
-	Result solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios) override;
+	Result solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) override;
 private:
 	localsolver::LocalSolver ls;
 	RevenueComputationNativeFunction rfunc;

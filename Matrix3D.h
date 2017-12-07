@@ -2,11 +2,10 @@
 // Created by André Schnabel on 03.12.17.
 //
 
-#include <vector>
-#include <iostream>
-#include "Matrix.h"
-
 #pragma once
+
+#include <vector>
+#include "Matrix.h"
 
 template<class T>
 class Matrix3D {

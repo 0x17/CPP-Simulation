@@ -25,11 +25,12 @@ void Experiments::effectOfDescriptiveSampling() {
 
 	//MultiClassSimulation sim("multi_data.json");
 	//MultiClassSimulation sim("multi_data_alternative.json");
-	MultiClassSimulation sim("multi_data_big.json");
+	const Toggles toggles;
+	MultiClassSimulation sim("multi_data_big.json", toggles);
 
 	EvaluatorMultiDimensional evl(sim);
 
-	auto refScenarios = sim.generateDemandScenarios(100000, 23, SamplingType::Descriptive);
+	const auto refScenarios = sim.generateDemandScenarios(100000, 23, SamplingType::Descriptive);
 
 	//auto means = AbstractSimulation::statisticalMeansOfScenarios(refScenarios);
 	//auto stddevs = AbstractSimulation::statisticalStandardDeviationsOfScenarios(refScenarios);
@@ -39,7 +40,7 @@ void Experiments::effectOfDescriptiveSampling() {
 	Helpers::spit("diffMeanRand;diffMeanDescr;diffStdDevRand;diffStdDevDescr\n", "diffmeans.txt");
 	Helpers::spit("ntries;solvetime\n", "solvetimeforntries.txt");
 
-	SolutionMethod method = SolutionMethod::Gurobi;
+	const SolutionMethod method = SolutionMethod::Gurobi;
 
 	for(int ntries = 1; ntries <= /*200*/ 106; ntries += 5) {
 		cout << "n=" << ntries << endl;
@@ -60,8 +61,8 @@ void Experiments::effectOfDescriptiveSampling() {
 			break;
 		}
 
-		auto profitRandomSampling = Helpers::vecAverage(sim.runSimulation(resRand.bookingLimits, refScenarios));
-		auto profitDescriptiveSampling = Helpers::vecAverage(sim.runSimulation(resDescr.bookingLimits, refScenarios));
+		const auto profitRandomSampling = Helpers::vecAverage(sim.runSimulation(resRand.bookingLimits, refScenarios));
+		const auto profitDescriptiveSampling = Helpers::vecAverage(sim.runSimulation(resDescr.bookingLimits, refScenarios));
 
 		Helpers::spitAppend(dot2comma(to_string(ntries) + ";" +to_string(profitRandomSampling) + ";" + to_string(profitDescriptiveSampling) + "\n"), "profitfornscen.txt");
 		Helpers::spitAppend(resRand.toString() + ";" + resDescr.toString() + "\n", "blimits.txt");

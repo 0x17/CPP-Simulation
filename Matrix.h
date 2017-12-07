@@ -44,7 +44,7 @@ public:
 
     Matrix(int _m, int _n) : m(_m), n(_n), data(_m*_n) {}
 
-	Matrix(int _m, int _n, int value) : Matrix(_m, _n, [value](int i, int j) { return value; }) {}
+	Matrix(int _m, int _n, T value) : Matrix(_m, _n, [value](int i, int j) { return value; }) {}
 
     ~Matrix() = default;
 
@@ -121,6 +121,12 @@ public:
 		}
 		out << "}" << std::endl;
 		return out.str();
+	}
+
+	void zeroOut() {
+		for(int i=0; i<m; i++)
+			for(int j=0; j<n; j++)
+				data[i*n+j] = 0;
 	}
 };
 

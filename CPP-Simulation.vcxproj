@@ -162,6 +162,7 @@
     <ClInclude Include="json11.hpp" />
     <ClInclude Include="LSSolver.h" />
     <ClInclude Include="Matrix.h" />
+    <ClInclude Include="Matrix3D.h" />
     <ClInclude Include="PSSolver.h" />
     <ClInclude Include="Runner.h" />
     <ClInclude Include="Simulation.h" />

@@ -21,6 +21,15 @@ string Helpers::slurp(const string &filename) {
     return content;
 }
 
+json11::Json Helpers::readJsonFromFile(const string& filename) {
+	string errMsg;
+	auto obj = json11::Json::parse(slurp(filename), errMsg);
+	if (!errMsg.empty()) {
+		throw runtime_error("Unable to parse " + filename + " error = " + errMsg);
+	}
+	return obj;
+}
+
 static mt19937 *gen = new mt19937(42);
 
 void Helpers::resetSeed(int seed) {

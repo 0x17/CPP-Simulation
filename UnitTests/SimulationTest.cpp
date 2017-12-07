@@ -42,7 +42,8 @@ const static std::string    TMP_DATA_FILENAME = "temp_data.json",
 
 void MultiClassSimulationTest::SetUp() {
     Helpers::spit(TMP_DATA_CONTENTS, TMP_DATA_FILENAME);
-    mcs = std::make_unique<MultiClassSimulation>(TMP_DATA_FILENAME);
+    Toggles toggles;
+    mcs = std::make_unique<MultiClassSimulation>(TMP_DATA_FILENAME, toggles);
     boost::filesystem::remove(TMP_DATA_FILENAME);
 }
 

@@ -29,7 +29,7 @@ Result AbstractEvaluator::extractOptimumFromList(const ResultList& results, bool
 	return optResult;
 }
 
-Result AbstractEvaluator::solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioList&> consumptionScenarios) {
+Result AbstractEvaluator::solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarios) {
 	Stopwatch sw;
 	sw.start();
 	/*auto res = collectResults(scenarios);
@@ -119,7 +119,7 @@ ResultList EvaluatorMultiDimensional::collectResults(const DemandScenarioList &s
 		if (classIndex == bookingLimits.size()) {
 			tr.intervalTrace(resultList[0].profit);
 
-			double obj = sim.objectiveWithGlobalSettings(bookingLimits, scenarios);
+			double obj = sim.objectiveWithCVarOption(bookingLimits, scenarios);
 			if(obj > resultList[0].profit) {
 				resultList[0].profit = obj;
 				resultList[0].bookingLimits = bookingLimits;
@@ -157,7 +157,7 @@ Result EvaluatorMultiDimensional::computeOptimum(const DemandScenarioList& scena
 		if (classIndex == bookingLimits.size()) {
 			tr.intervalTrace(opt.profit);
 
-			double obj = sim.objectiveWithGlobalSettings(bookingLimits, scenarios);
+			double obj = sim.objectiveWithCVarOption(bookingLimits, scenarios);
 			if (obj > opt.profit) {
 				opt.profit = obj;
 				opt.bookingLimits = bookingLimits;
