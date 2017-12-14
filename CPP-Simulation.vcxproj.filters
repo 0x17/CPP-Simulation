@@ -54,6 +54,9 @@
     <ClInclude Include="Matrix3D.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="EasyCSV.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Helpers.cpp">
@@ -87,6 +90,9 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="Runner.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="EasyCSV.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

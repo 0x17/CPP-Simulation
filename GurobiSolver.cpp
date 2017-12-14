@@ -35,12 +35,12 @@ struct BookingAcceptVars {
 	Matrix<GRBVar> njs;
 };
 
-BookingAcceptVars modelBuilderForOldFormulation(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc);
-BookingAcceptVars modelBuilderForNewFormulation(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc);
-BookingAcceptVars modelBuilderForEconomiesOfScale(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc);
-BookingAcceptVars modelBuilderForStochasticConsumptions(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc);
-BookingAcceptVars modelBuilderForStochasticEconomiesOfScale(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc);
-BookingAcceptVars modelBuilderForConditionalValueAtRisk(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc);
+BookingAcceptVars modelBuilderForOldFormulation(GurobiOptimizer &solver, const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc);
+BookingAcceptVars modelBuilderForNewFormulation(GurobiOptimizer &solver, const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc);
+BookingAcceptVars modelBuilderForEconomiesOfScale(GurobiOptimizer &solver, const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc);
+BookingAcceptVars modelBuilderForStochasticConsumptions(GurobiOptimizer &solver, const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc);
+BookingAcceptVars modelBuilderForStochasticEconomiesOfScale(GurobiOptimizer &solver, const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc);
+BookingAcceptVars modelBuilderForConditionalValueAtRisk(GurobiOptimizer &solver, const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc);
 
 Result GurobiOptimizer::solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
 	auto assertSingleToggle = [](const Toggles &toggleObj) {
@@ -67,26 +67,64 @@ Result GurobiOptimizer::solve(const DemandScenarioList& scenarios, const boost::
 	};
 
 	auto modelBuilder = chooseModelBuilder(toggles);
-	return solveCommon(scenarios, consumptionScenarioFunc, modelBuilder);
+	return solveCommon(*this, scenarios, consumptionScenarioFunc, modelBuilder);
 }
 
-void addConditionalValueAtRiskConsiderationToModel(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const Matrix<GRBVar> &njs);
+void GurobiOptimizer::addDisplayVar(const DisplayVar& v) {
+	displayVars.push_back(v);
+}
+
+void GurobiOptimizer::addDisplayVars(const std::vector<DisplayVar>& vars) {
+	for(auto& v : vars) {
+		addDisplayVar(v);
+	}
+}
+
+void GurobiOptimizer::addDisplayVars(const std::vector<std::string>& names, const std::vector<GRBVar>& grbVars) {
+	for(int i=0; i<names.size(); i++) {
+		addDisplayVar({ names[i], grbVars[i] });
+	}
+}
+
+void GurobiOptimizer::addDisplayVarsContiguous(const std::string& prefix, const std::vector<GRBVar>& grbVars) {
+	addDisplayVars(Helpers::constructVector<string>(grbVars.size(), [&prefix](int i) { return prefix + to_string(i); }), grbVars);
+}
+
+void GurobiOptimizer::printDisplayVarResults() {
+	cout << "Display variables:" << endl;
+	for(auto &v : displayVars) {
+		cout << "Var=" << v.name << ", Value=" << v.v.get(GRB_DoubleAttr_X) << endl;
+	}
+}
+
+void addConditionalValueAtRiskConsiderationToModel(GurobiOptimizer &solver, const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const Matrix<GRBVar> &njs);
+
+map<string, double> collectVarResultMap(const list<DisplayVar> &vars) {
+	map<string, double> res;
+
+	for(auto &var : vars) {
+		string name = var.name;
+		res.insert(std::pair<string, double>(name, var.v.get(GRB_DoubleAttr_X)));
+	}
+
+	return res;
+}
 
 template<class Func>
-Result GurobiOptimizer::solveCommon(const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc, Func modelBuilder) {
+Result GurobiOptimizer::solveCommon(GurobiOptimizer &solver, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc, Func modelBuilder) {
 	GRBEnv env;
 	env.set(GRB_DoubleParam_MIPGap, 0.0);
-	env.set(GRB_DoubleParam_TimeLimit, /*GRB_INFINITY*/ globals::TIME_LIMIT);
+	env.set(GRB_DoubleParam_TimeLimit, globals::TIME_LIMIT);
 	env.set(GRB_IntParam_Threads, 1);
 
 	GRBModel model(env);
 
-	BookingAcceptVars pair = modelBuilder(sim, model, scenarios, consumptionScenarioFunc);
+	BookingAcceptVars pair = modelBuilder(*this, sim, model, scenarios, consumptionScenarioFunc);
 	auto bcj = pair.bcj;
     auto njs = pair.njs;
 
     if(sim.getToggles().CVaR) {
-        addConditionalValueAtRiskConsiderationToModel(sim, model, scenarios, njs);
+        addConditionalValueAtRiskConsiderationToModel(solver, sim, model, scenarios, njs);
     }
 
 	if (heuristicBookingLimits) {
@@ -112,8 +150,12 @@ Result GurobiOptimizer::solveCommon(const DemandScenarioList &scenarios, const b
 
 		double secondsElapsed = model.get(GRB_DoubleAttr_Runtime);
 		//Helpers::spitAppend(to_string(S) + ";" + to_string(secondsElapsed) + "\n", "solvetimeforntries.txt");
+
+		//printDisplayVarResults();
+		//auto resDict = collectVarResultMap(displayVars);
+		displayVars.clear();
 	}
-	catch (GRBException e) {
+	catch (GRBException &e) {
 		cout << "Error code = " << e.getErrorCode() << endl;
 		cout << e.getMessage() << endl;
 	}
@@ -174,7 +216,7 @@ GRBLinExpr sum3D(int ub1, int ub2, int ub3, Func f) {
 	return result;
 }
 
-BookingAcceptVars modelBuilderForOldFormulation(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
+BookingAcceptVars modelBuilderForOldFormulation(GurobiOptimizer &solver, const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
 	int J = sim.getNumClasses(),
 		C = sim.getC(),
 		S = scenarios.getM();
@@ -208,7 +250,7 @@ BookingAcceptVars modelBuilderForOldFormulation(const AbstractSimulation &sim, G
 	return {bcj, njs};
 }
 
-BookingAcceptVars modelBuilderForEconomiesOfScale(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
+BookingAcceptVars modelBuilderForEconomiesOfScale(GurobiOptimizer &solver, const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
 	int J = sim.getNumClasses(),
 		C = sim.getC(),
 		S = scenarios.getM(),
@@ -268,7 +310,7 @@ BookingAcceptVars modelBuilderForEconomiesOfScale(const AbstractSimulation &sim,
 	return {bcj, njs};
 }
 
-BookingAcceptVars modelBuilderForNewFormulation(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
+BookingAcceptVars modelBuilderForNewFormulation(GurobiOptimizer &solver, const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
 	int J = sim.getNumClasses(),
 			C = sim.getC(),
 			S = scenarios.getM();
@@ -288,7 +330,8 @@ BookingAcceptVars modelBuilderForNewFormulation(const AbstractSimulation &sim, G
 		return model.addVar(0.0, C, 0.0, GRB_INTEGER, caption);
 	});
 
-	model.setObjective(1.0 / (double)S * sum2D(J, S, [&](int j, int s) {  return njs(j, s) * rj(j); }), GRB_MAXIMIZE);
+    if(!sim.getToggles().CVaR)
+	    model.setObjective(1.0 / (double)S * sum2D(J, S, [&](int j, int s) {  return njs(j, s) * rj(j); }), GRB_MAXIMIZE);
 
 	for (int j = 0; j < J; j++) {
 		if (j + 1 < J)
@@ -303,15 +346,18 @@ BookingAcceptVars modelBuilderForNewFormulation(const AbstractSimulation &sim, G
 		}
 	}
 
+	/*for(int j=0; j<J; j++)
+		solver.addDisplayVarsContiguous("nj=" + to_string(j) + ", s=", njs.row(j));*/
+
 	return {bcj, njs};
 }
 
-void addConditionalValueAtRiskConsiderationToModel(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const Matrix<GRBVar> &njs) {
+void addConditionalValueAtRiskConsiderationToModel(GurobiOptimizer &solver, const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const Matrix<GRBVar> &njs) {
 	int J = sim.getNumClasses(),
 		S = scenarios.getM();
 
-	const double cvarUpperBound = ceil(sim.getC() / sim.getCustomer(0).consumptionPerReqMean) * sim.getCustomer(0).revenuePerReq;
-	const GRBVar cvar = model.addVar(0.0, cvarUpperBound, 0.0, GRB_CONTINUOUS, "CVaR");
+	//const double cvarUpperBound = ceil(sim.getC() / sim.getCustomer(0).consumptionPerReqMean) * sim.getCustomer(0).revenuePerReq;
+	const GRBVar cvar = model.addVar(0.0, GRB_INFINITY, 0.0, GRB_CONTINUOUS, "CVaR");
 
 	const GRBVar omega0 = model.addVar(0.0, GRB_INFINITY, 0.0, GRB_CONTINUOUS, "omega0");
 	vector<GRBVar> omega_s = Helpers::constructVector<GRBVar>(S, [&](int s) { return model.addVar(0.0, GRB_INFINITY, 0.0, GRB_CONTINUOUS, "omega_s=" + to_string(s)); });
@@ -320,22 +366,24 @@ void addConditionalValueAtRiskConsiderationToModel(const AbstractSimulation &sim
 	const double alpha = sim.getAlpha();
 
 	vector<GRBVar> G_s = Helpers::constructVector<GRBVar>(S, [&](int s) { return model.addVar(0.0, GRB_INFINITY, 0.0, GRB_CONTINUOUS, "G_s=" + to_string(s));  });
+	
+	//solver.addDisplayVarsContiguous("G_", G_s);
 
-	model.setObjective(profitWeight * 1.0 / (double)S * sum(S, [&](int s) {  return G_s[s]; }) + (1 - profitWeight) * cvar, GRB_MAXIMIZE);
-	model.addConstr(cvar == omega0 - 1 / (1 - alpha) * sum(S, [&omega_s](int s) { return omega_s[s]; }));
+	model.setObjective(profitWeight * 1.0 / (double)S * sum(S, [&](int s) {  return G_s[s]; }) + (1.0 - profitWeight) * cvar, GRB_MAXIMIZE);
+	model.addConstr(cvar == omega0 - 1.0 / (1.0 - alpha) * 1.0 / (double)S * sum(S, [&omega_s](int s) { return omega_s[s]; }));
 	for (int s = 0; s < S; s++) {
 		model.addConstr(G_s[s] == sum(J, [&](int j) { return sim.getCustomer(j).revenuePerReq * njs(j, s); }));
 		model.addConstr(omega0 - omega_s[s] <= G_s[s]);
 	}
 }
 
-BookingAcceptVars modelBuilderForConditionalValueAtRisk(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
-	auto pair = modelBuilderForNewFormulation(sim, model, scenarios, {});
-	addConditionalValueAtRiskConsiderationToModel(sim, model, scenarios, pair.njs);
+BookingAcceptVars modelBuilderForConditionalValueAtRisk(GurobiOptimizer &solver, const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
+	auto pair = modelBuilderForNewFormulation(solver, sim, model, scenarios, {});
+	addConditionalValueAtRiskConsiderationToModel(solver, sim, model, scenarios, pair.njs);
 	return pair;
 }
 
-BookingAcceptVars modelBuilderForStochasticConsumptions(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
+BookingAcceptVars modelBuilderForStochasticConsumptions(GurobiOptimizer &solver, const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
 	if (!consumptionScenarioFunc.is_initialized()) {
 		throw runtime_error("No consumption scenarios provided for stochastic consumption model!");
 	}
@@ -377,7 +425,7 @@ BookingAcceptVars modelBuilderForStochasticConsumptions(const AbstractSimulation
 	return {bcj, njs};
 }
 
-BookingAcceptVars modelBuilderForStochasticEconomiesOfScale(const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
+BookingAcceptVars modelBuilderForStochasticEconomiesOfScale(GurobiOptimizer &solver, const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
 	int J = sim.getNumClasses(),
 			C = sim.getC(),
 			S = scenarios.getM(),

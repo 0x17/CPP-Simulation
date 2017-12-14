@@ -42,7 +42,7 @@ BookingLimitOptimizer::BookingLimitOptimizer(std::string _name, const AbstractSi
 
 std::string BookingLimitOptimizer::getName() const { return name; }
 
-AbstractSimulation::AbstractSimulation(const string &dataFilename, Toggles _toggles) : toggles(_toggles) {
+AbstractSimulation::AbstractSimulation(const string &dataFilename, Toggles _toggles) : alpha(0.0), psi(0.0), toggles(_toggles) {
 	auto obj = Helpers::readJsonFromFile(dataFilename);
     C = obj["capacity"].int_value();
 	for(const auto &c : obj["clients"].array_items()) {

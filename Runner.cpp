@@ -13,7 +13,7 @@
 #include "LSSolver.h"
 #include "GurobiSolver.h"
 #include "PSSolver.h"
-#include "Globals.h"
+#include "EasyCSV.h"
 
 using namespace std;
 
@@ -162,10 +162,13 @@ void Runner::runOptimizers() {
 
 	cout << "Number of scenarios: " << ntries << endl << endl;
 
-	//MultiClassSimulation sim("multi_data_big.json");
-	MultiClassSimulation sim("multi_data.json", toggles);
+	MultiClassSimulation sim("multi_data_big.json", toggles);
+	//MultiClassSimulation sim("multi_data.json", toggles);
 	//MultiClassSimulation sim("vonfolie.json");
 	//MultiClassSimulation sim("Instances/pinstance1.json");
+    //MultiClassSimulation sim("multi_data_cvar_harder.json", toggles);
+
+	sim.setRiskAversionParameters(0.8, 0.5);
 
 	EvaluatorMultiDimensional evl(sim);
 	LSOptimizer ls(sim);
@@ -180,6 +183,7 @@ void Runner::runOptimizers() {
 	list<pair<string, Result>> results;
 
 	for (auto optimizer : optimizers) {
+        cout << "Running: " << optimizer->getName() << endl;
 		results.emplace_back(optimizer->getName(), optimizer->solve(scenarios, {}));
 	}
 
@@ -190,52 +194,81 @@ void Runner::runOptimizers() {
 	}
 }
 
-void Runner::alphaPsiVariations() {
-	const Toggles toggles;
-	MultiClassSimulation sim("multi_data.json", toggles);
-	unique_ptr<BookingLimitOptimizer> blo = make_unique<GurobiOptimizer>(sim);
+void serializeDemandScenariosToDisk(const DemandScenarioList &scenarios, const std::string &outFilename) {
+	const auto headerParts = Helpers::constructVector<string>(scenarios.getN(), [](int j) { return "j" + to_string(j+1);  });
+    EasyCSV ecsv("scenario;" + boost::algorithm::join(headerParts, ";"));
 
-	const auto scenarios = sim.generateDemandScenarios(150, 42, SamplingType::Descriptive);
+	for (int s = 0; s < scenarios.getM(); s++) {
+		const auto scenario = scenarios.row(s);
+		ecsv.addRow(Helpers::constructVector<string>(scenarios.getN() + 1, [s, &scenario](int j) { return to_string(j == 0 ? s : scenario[j - 1]); }));
+	}
+	ecsv.persist(outFilename);
+}
 
-	const string OUT_FN = "alphaPsiVariations.csv";
-	Helpers::spit("alpha;psi;profit;b1;b2;b3\n", OUT_FN);
-
-	int alphaCtr = 0;
-	int psiCtr = 0;	
+Matrix<Result> computeAndPersistAlphaPsiVariations(AbstractSimulation &sim, const DemandScenarioList &scenarios, BookingLimitOptimizer &blo) {
+	auto persistScenarioProfits = [&scenarios, &sim](int alphaCtr, int psiCtr, const vector<int> &bookingLimits) {
+		EasyCSV profitScenarios("scenario;profit");
+		for (int sindex = 0; sindex < scenarios.getM(); sindex++) {
+			const auto demands = scenarios.row(sindex);
+			profitScenarios.addRow(vector<double>{ (double)sindex, sim.objective(demands, bookingLimits) });
+		}
+		profitScenarios.persist("psi" + to_string(psiCtr) + "_alpha" + to_string(alphaCtr) + "_profits");
+	};
 
 	Matrix<Result> resmx(11, 11, {});
-	
-	for(double alpha = 0.0; alpha <= 1.0; alpha += 0.1, alphaCtr++) {
-		for(double psi = 0.0; psi <= 1.0; psi += 0.1, psiCtr++) {
-			
+	EasyCSV ecsv("alpha;psi;profit;b1;b2;b3");
+
+	int psiCtr = 0;
+	for (double psi = 0.0; psi <= 1.0; psi += 0.1, psiCtr++) {
+		int alphaCtr = 0;
+		for (double alpha = 0.0; alpha <= 1.0; alpha += 0.1, alphaCtr++) {
 			sim.setRiskAversionParameters(alpha, psi);
-			auto res = blo.get()->solve(scenarios, {});
-
+			auto res = blo.solve(scenarios, {});
 			resmx(alphaCtr, psiCtr) = res;
-
-			const vector<double> parts = { alpha, psi, res.profit, (double)res.bookingLimits[0], (double)res.bookingLimits[1], (double)res.bookingLimits[2] };
-			const auto sparts = Helpers::constructVector<string>(parts.size(), [&parts](int i) { return to_string(parts[i]); });
-			const string resline = boost::algorithm::join(sparts, ";");
-			Helpers::spitAppend(resline, OUT_FN);
+			ecsv.addRow({alpha, psi, res.profit, (double) res.bookingLimits[0], (double) res.bookingLimits[1], (double) res.bookingLimits[2]});
+			persistScenarioProfits(alphaCtr, psiCtr, res.bookingLimits);
 		}
 	}
 
-	const string OUT_FN2 = "alphaPsiVariationsTable.csv";
-	const auto colCaptions = Helpers::constructVector<std::string>(11, [](int i) { return to_string(i*0.1); });
-	const string colNamesStr = boost::algorithm::join(colCaptions, ";");
-	Helpers::spit("TABLE;"+colNamesStr+"\n", OUT_FN2);
+	ecsv.persist("alphaPsiVariations");
+	return resmx;
+}
+
+void persistAlphaPsiVariationsTable(Matrix<Result> &resmx) {
+	const auto colCaptions = Helpers::constructVector<std::string>(11, [](int i) { return to_string(i * 0.1); });
+	EasyCSV ecsv("TABLE;"+ boost::algorithm::join(colCaptions, ";"));
 
 	auto resultCellStr = [](Result &res) {
-		const vector<double> parts = { res.profit, (double)res.bookingLimits[0], (double)res.bookingLimits[1], (double)res.bookingLimits[2] };
-		const auto sparts = Helpers::constructVector<string>(parts.size(), [&parts](int i) { return to_string(parts[i]); });
+		const vector<double> parts = {res.profit, (double) res.bookingLimits[0], (double) res.bookingLimits[1],
+									  (double) res.bookingLimits[2]};
+		const auto sparts = Helpers::constructVector<string>(parts.size(),
+															 [&parts](int i) { return to_string(parts[i]); });
 		return boost::algorithm::join(sparts, ",");
+		//return to_string(res.profit);
 	};
 
-	for(int row = 0; row < 11; row++) {
+	for (int row = 0; row < 11; row++) {
 		const vector<string> parts = Helpers::constructVector<string>(12, [&resultCellStr, &resmx, row](int col) {
-			return (col == 0) ? to_string(col*0.1) : resultCellStr(resmx(row, col - 1));
+			return (col == 0) ? to_string(row * 0.1) : resultCellStr(resmx(row, col - 1));
 		});
-		const string rowline = boost::algorithm::join(parts, ";");
-		Helpers::spitAppend(rowline, OUT_FN2);
+		ecsv.addRow(parts);
 	}
+
+	ecsv.persist("alphaPsiVariationsTable");
+}
+
+void Runner::alphaPsiVariations() {
+	const Toggles toggles;
+	MultiClassSimulation sim("multi_data_cvar.json", toggles);
+	const unique_ptr<BookingLimitOptimizer> blo = make_unique<GurobiOptimizer>(sim);
+
+    assert(sim.getNumClasses() == 3);
+
+	const auto scenarios = sim.generateDemandScenarios(150, 42, SamplingType::Descriptive);
+    serializeDemandScenariosToDisk(scenarios, "scenariosDescriptive");
+
+	serializeDemandScenariosToDisk(sim.generateDemandScenarios(150, 42, SamplingType::Random), "scenarios");
+
+	Matrix<Result> resmx = computeAndPersistAlphaPsiVariations(sim, scenarios, *blo);
+	persistAlphaPsiVariationsTable(resmx);
 }

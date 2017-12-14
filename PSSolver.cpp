@@ -112,6 +112,7 @@ void Swarm::updateLocalGlobalBests(int particleIndex) {
 		}			
 		// update global best
 		if(newObj > globalBestObjective) {
+			cout << "Improvement by " << newObj - globalBestObjective << "..." << endl;
 			globalBestObjective = newObj;
 			globalBest = particles.row(particleIndex);
 		}

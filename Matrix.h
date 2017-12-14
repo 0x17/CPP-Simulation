@@ -128,6 +128,18 @@ public:
 			for(int j=0; j<n; j++)
 				data[i*n+j] = 0;
 	}
+
+	std::vector<std::vector<T>> nestedVectors() {
+		std::vector<std::vector<T>> res(m);
+		for(int i=0; i<m; i++) {
+			std::vector<T> rrow(n);
+			for (int j = 0; j < n; j++) {
+				rrow[j] = data[i*n+j];
+			}
+			res[i] = rrow;
+		}
+		return res;
+	}
 };
 
 template<class T>
