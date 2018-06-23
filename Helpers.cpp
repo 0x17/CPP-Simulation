@@ -7,6 +7,7 @@
 #include "Globals.h"
 
 #include <boost/math/distributions/normal.hpp>
+#include <boost/math/distributions/binomial.hpp>
 #include <boost/format.hpp>
 
 #include <fstream>
@@ -111,6 +112,11 @@ double Helpers::pickNextWithLUT(std::vector<double> &lut, int &drawnCounter) {
 double Helpers::pickNextWithLUT(std::vector<double> &lut) {
 	static int drawnCounter = 0;
 	return pickNextWithLUT(lut, drawnCounter);
+}
+
+int Helpers::pickBinomial(int n, double p) {
+	binomial_distribution<int> d(n, p);
+	return d(*gen);
 }
 
 namespace Helpers {

@@ -4,6 +4,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include "EasyCSV.h"
+#include "Helpers.h"
 
 using namespace std;
 

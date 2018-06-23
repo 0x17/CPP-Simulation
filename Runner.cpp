@@ -14,6 +14,8 @@
 #include "GurobiSolver.h"
 #include "PSSolver.h"
 #include "EasyCSV.h"
+#include "MultiClassSimulation.h"
+#include "Helpers.h"
 
 using namespace std;
 
@@ -33,7 +35,7 @@ struct CommandlineArguments {
 };
 
 void showUsage() {
-	cout << "Usage: CPP-Simulation instance=multi_data.json solverName=Gurobi numScenarios=150" << endl;
+	cout << "Usage: CPP-Simulation instance=multi_data solver=Gurobi nscenarios=150" << endl;
 	cout << "Solver names = { Gurobi, LocalSolver, ParticleSwarm, FullEnumeration }" << endl;
 }
 
@@ -82,7 +84,8 @@ void Runner::commandLine(const list<string> &args) {
 	const Toggles toggles("toggles.json");
 	const MultiClassSimulation sim(cfg.instanceName+".json", toggles);
 
-	const auto scenarios = sim.generateDemandScenarios(cfg.numScenarios, 42, SamplingType::Descriptive);
+	//const auto scenarios = sim.generateDemandScenarios(cfg.numScenarios, 42, SamplingType::Descriptive);
+	const auto scenarios = sim.generateDemandScenariosBinomial(cfg.numScenarios, 42);
 	auto solverNameToObject = generateSolverNameToObjectMapping(sim);
 	BookingLimitOptimizer *optimizer = solverNameToObject[cfg.solverName]();
 

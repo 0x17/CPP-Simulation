@@ -6,8 +6,8 @@
 
 #include <boost/optional.hpp>
 #include "json11.hpp"
+
 #include "Matrix.h"
-#include "Helpers.h"
 #include "Matrix3D.h"
 
 struct Toggles {
@@ -24,6 +24,8 @@ struct Customer {
     std::string description;
 	double consumptionPerReqMean, consumptionPerReqStdDev;
 	double revenuePerReq;
+	int n;
+	double p;
 
     explicit Customer(const json11::Json &obj);
 };
@@ -56,8 +58,11 @@ public:
 	virtual ~AbstractSimulation() = default;
 
     DemandScenario pickDemands() const;
+	DemandScenario pickDemandsBinomial() const;
 	DemandScenario pickDemandsDescriptive(LUTList& lutList) const;
+	
     DemandScenarioList generateDemandScenarios(int ntries, int seed, SamplingType stype = SamplingType::Descriptive) const;
+	DemandScenarioList generateDemandScenariosBinomial(int ntries, int seed) const;
 
 	ConsumptionScenario pickConsumptions(int u) const;
 	ConsumptionScenario pickConsumptionsDescriptive(LUTList& lutList) const;
@@ -120,7 +125,7 @@ using ResultList = std::vector<Result>;
 class BookingLimitOptimizer {
 	const bool useHeuristicStart = false;
 public:
-	BookingLimitOptimizer(std::string _name, const AbstractSimulation& _sim);
+	BookingLimitOptimizer(const std::string &_name, const AbstractSimulation& _sim);
 	virtual ~BookingLimitOptimizer() = default;
 
 	virtual Result solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) = 0;
@@ -132,24 +137,5 @@ protected:
 	OptionalPolicy heuristicBookingLimits;
 private:
 	std::string name;
-};
-
-class TwoClassSimulation : public AbstractSimulation {
-public:
-	explicit TwoClassSimulation(const std::string& dataFilename, Toggles _toggles);
-    double objective(const std::vector<int>& demands, const std::vector<int>& bookingLimits) const override;
-	OptionalPolicy heuristicPolicy() const override;
-	OptionalPolicy optimalPolicy() const override;
-	DistParameters eosConsumptionDistributionParametersForCustomer(int j, int u) const override;
-};
-
-class MultiClassSimulation : public AbstractSimulation {
-public:
-	explicit MultiClassSimulation(const std::string& dataFilename, Toggles _toggles);
-    double objective(const std::vector<int>& demands, const std::vector<int>& bookingLimits) const override;
-	OptionalPolicy heuristicPolicy() const override;
-	OptionalPolicy optimalPolicy() const override;
-	double eosConsumption(int j, int u) const;
-	DistParameters eosConsumptionDistributionParametersForCustomer(int j, int u) const override;
 };
 

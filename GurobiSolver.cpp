@@ -7,6 +7,7 @@
 #include "Matrix.h"
 #include "Helpers.h"
 #include "Globals.h"
+#include "MultiClassSimulation.h"
 #include <numeric>
 
 using namespace std;
@@ -43,12 +44,12 @@ BookingAcceptVars modelBuilderForStochasticEconomiesOfScale(GurobiOptimizer &sol
 BookingAcceptVars modelBuilderForConditionalValueAtRisk(GurobiOptimizer &solver, const AbstractSimulation &sim, GRBModel &model, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc);
 
 Result GurobiOptimizer::solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
-	auto assertSingleToggle = [](const Toggles &toggleObj) {
+	const auto assertSingleToggle = [](const Toggles &toggleObj) {
 		const vector<bool> &toggles = toggleObj.toVec();
-		auto b2int = [](bool b) -> int { return b ? 1 : 0;  };
+		const auto b2int = [](bool b) -> int { return b ? 1 : 0;  };
 		vector<int> nums(toggles.size());
 		std::transform(toggles.begin(), toggles.end(), nums.begin(), b2int);
-		int ntoggles = std::accumulate(nums.begin(), nums.end(), 0);
+		const int ntoggles = std::accumulate(nums.begin(), nums.end(), 0);
 		if (ntoggles > 1) {
 			throw runtime_error("More than one toggle!");
 		}
@@ -58,7 +59,7 @@ Result GurobiOptimizer::solve(const DemandScenarioList& scenarios, const boost::
 
 	assertSingleToggle(toggles);
 
-	auto chooseModelBuilder = [](const Toggles &toggles) {
+	const auto chooseModelBuilder = [](const Toggles &toggles) {
 		if(toggles.economyOfScale && toggles.stochasticConsumptions) return modelBuilderForStochasticEconomiesOfScale;
 		if(toggles.economyOfScale) return modelBuilderForEconomiesOfScale;
 		//if(toggles.conditionalValueAtRisk) return modelBuilderForConditionalValueAtRisk;
@@ -66,7 +67,7 @@ Result GurobiOptimizer::solve(const DemandScenarioList& scenarios, const boost::
 		return modelBuilderForNewFormulation;
 	};
 
-	auto modelBuilder = chooseModelBuilder(toggles);
+	const auto modelBuilder = chooseModelBuilder(toggles);
 	return solveCommon(*this, scenarios, consumptionScenarioFunc, modelBuilder);
 }
 

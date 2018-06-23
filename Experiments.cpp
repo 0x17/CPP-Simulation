@@ -11,6 +11,7 @@
 #include <boost/algorithm/string.hpp>
 #include <iostream>
 #include <cmath>
+#include "MultiClassSimulation.h"
 using namespace std;
 
 enum class SolutionMethod {

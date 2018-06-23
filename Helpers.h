@@ -27,10 +27,19 @@ namespace Helpers {
     std::string slurp(const std::string& filename);
 	json11::Json readJsonFromFile(const std::string &filename);
 
+	inline double numOrElse(const json11::Json &obj, const std::string &key, double default_val = 0.0) {
+		return obj[key].is_number() ? obj[key].number_value() : default_val;
+	}
+
+	inline int intNumOrElse(const json11::Json &obj, const std::string &key, int default_val = 0.0) {
+		return obj[key].is_number() ? obj[key].int_value() : default_val;
+	}
+
 	void resetSeed(int seed);
     double pickNormal(double mean, double stddev);
 	double invNormal(double x, double mean, double stddev);
 	double pickNormalDescriptive(double mean, double stddev, int scenarioIx, int nscenarios);
+	int pickBinomial(int n, double p);
 
 	std::vector<double> generateNormalDistributionDescriptiveSamplingLUT(int sampleSize, double mean, double stddev);
 

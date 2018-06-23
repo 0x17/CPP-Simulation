@@ -4,14 +4,15 @@
 
 #include <algorithm>
 #include <cmath>
+
 #include <boost/math/special_functions.hpp>
+#include <boost/algorithm/clamp.hpp>
+#include <boost/filesystem.hpp>
+
 #include "json11.hpp"
 
 #include "Simulation.h"
 #include "Helpers.h"
-#include "Globals.h"
-#include <boost/algorithm/clamp.hpp>
-#include <boost/filesystem.hpp>
 
 using namespace std;
 
@@ -31,7 +32,7 @@ string Result::toString() const {
     return out;
 }
 
-BookingLimitOptimizer::BookingLimitOptimizer(std::string _name, const AbstractSimulation& _sim) :
+BookingLimitOptimizer::BookingLimitOptimizer(const std::string &_name, const AbstractSimulation& _sim) :
 	sim(_sim),
 	name(_name)
 {
@@ -43,7 +44,7 @@ BookingLimitOptimizer::BookingLimitOptimizer(std::string _name, const AbstractSi
 std::string BookingLimitOptimizer::getName() const { return name; }
 
 AbstractSimulation::AbstractSimulation(const string &dataFilename, Toggles _toggles) : alpha(0.0), psi(0.0), toggles(_toggles) {
-	auto obj = Helpers::readJsonFromFile(dataFilename);
+	const auto obj = Helpers::readJsonFromFile(dataFilename);
     C = obj["capacity"].int_value();
 	for(const auto &c : obj["clients"].array_items()) {
 		customers.emplace_back(c);
@@ -119,92 +120,10 @@ void AbstractSimulation::setRiskAversionParameters(double _alpha, double _psi) {
 	psi = _psi;
 }
 
-TwoClassSimulation::TwoClassSimulation(const std::string& dataFilename, Toggles _toggles): AbstractSimulation(dataFilename, _toggles) {
-}
+//=====================================================================================================================
 
-double TwoClassSimulation::objective(const vector<int>& demands, const vector<int>& bookingLimits) const {
-	int n2 = (int)floor(min((double)bookingLimits[1], demands[1] * customers[1].consumptionPerReqMean) / customers[1].consumptionPerReqMean);
-	int n1 = (int)floor(min(demands[0] * customers[0].consumptionPerReqMean, C - n2 * customers[1].consumptionPerReqMean));
-	return n1 * customers[0].revenuePerReq + n2 * customers[1].revenuePerReq;
-}
+//==============================================================================================================================
 
-OptionalPolicy TwoClassSimulation::heuristicPolicy() const {
-	vector<int> bookingLimits(2);
-	bookingLimits[0] = (int)floor(min(customers[0].expD * customers[0].consumptionPerReqMean, (double)C) / customers[0].consumptionPerReqMean);
-	bookingLimits[1] = (int)floor(min(customers[1].expD * customers[1].consumptionPerReqMean, (C-bookingLimits[0]*customers[0].consumptionPerReqMean)) / customers[1].consumptionPerReqMean);
-	return bookingLimits;
-}
-
-OptionalPolicy TwoClassSimulation::optimalPolicy() const {	
-	if (customers[0].consumptionPerReqMean == 1 && customers[1].consumptionPerReqMean == 1) {
-		double x = (customers[0].revenuePerReq - customers[1].revenuePerReq) / customers[0].revenuePerReq;
-		vector<int> bookingLimits = { C, C - (int)floor(Helpers::invNormal(x, customers[0].expD, customers[0].devD)) };
-		return bookingLimits;
-	}
-	return OptionalPolicy();
-}
-
-DistParameters TwoClassSimulation::eosConsumptionDistributionParametersForCustomer(int u, int j) const {
-    return DistParameters { customers[j].consumptionPerReqMean, customers[j].consumptionPerReqStdDev };
-}
-
-MultiClassSimulation::MultiClassSimulation(const std::string& dataFilename, Toggles _toggles): AbstractSimulation(dataFilename, _toggles) {
-}
-
-double MultiClassSimulation::objective(const vector<int>& demands, const vector<int>& bookingLimits) const {
-	double	residualCapacity = C,
-			profit = 0.0;
-
-	for(int ix = numClasses - 1; ix >= 0; ix--) {
-		int n;
-		if (toggles.economyOfScale) {
-			double blCapacityLeft = (bookingLimits[ix] - (C - residualCapacity));
-			int fittingInBL = 0;
-			for (int k = 1; k <= ceil(blCapacityLeft); k++) {
-				if (k * eosConsumption(ix, k) <= blCapacityLeft)
-					fittingInBL = k;
-			}
-			n = min(demands[ix], fittingInBL);
-			residualCapacity -= n * eosConsumption(ix, n);
-			//cout << "n" << ix << "=" << n << endl;
-		}
-		else {
-			n = min(demands[ix], (int)floor((bookingLimits[ix] - (C - residualCapacity)) / customers[ix].consumptionPerReqMean));
-			residualCapacity -= n * customers[ix].consumptionPerReqMean;
-		}
-
-		profit += n * customers[ix].revenuePerReq;
-	}
-
-	//cout << "Profit == " << profit << endl;
-
-	return profit;
-}
-
-OptionalPolicy MultiClassSimulation::heuristicPolicy() const {
-	vector<int> bookingLimits((unsigned long)numClasses);
-	bookingLimits[0] = C;	
-	for(int j=1; j<numClasses; j++) {
-		bookingLimits[j] = (int)floor( min(customers[j].expD * customers[j].consumptionPerReqMean, (double)bookingLimits[j-1]) );
-	}
-	return bookingLimits;
-}
-
-OptionalPolicy MultiClassSimulation::optimalPolicy() const {
-	return OptionalPolicy();
-}
-
-double MultiClassSimulation::eosConsumption(int j, int u) const {
-	double deltaX = customers[j].expD;
-	double deltaY = customers[j].consumptionPerReqMean * 0.2;
-	return max(1.0, customers[j].consumptionPerReqMean - (boost::math::erf(4 * u / deltaX - 2) * deltaY / 2.0 + deltaY / 2.0));
-}
-
-DistParameters MultiClassSimulation::eosConsumptionDistributionParametersForCustomer(int j, int u) const {
-    double mu = eosConsumption(j, u);
-    double sigma = mu / 10.0;
-    return DistParameters { mu, sigma };
-}
 
 template<class T>
 using Scenario = std::vector<T>;
@@ -258,12 +177,29 @@ DemandScenario AbstractSimulation::pickDemands() const {
 	return pickScenario<int>(numClasses, demandDistributionParametersForCustomers(), true);
 }
 
+DemandScenario AbstractSimulation::pickDemandsBinomial() const {
+	Scenario<int> scenario(numClasses);
+	for (int j = 0; j < numClasses; j++) {
+		scenario[j] = Helpers::pickBinomial(customers[j].n, customers[j].p);
+	}
+	return scenario;
+}
+
 DemandScenario AbstractSimulation::pickDemandsDescriptive(LUTList &lutList) const {
 	return pickScenarioDescriptive<int>(customers.size(), lutList, true);
 }
 
 DemandScenarioList AbstractSimulation::generateDemandScenarios(int ntries, int seed, SamplingType stype) const {
 	return generateScenarios<int>(customers.size(), demandDistributionParametersForCustomers(), ntries, seed, stype, true);
+}
+
+DemandScenarioList AbstractSimulation::generateDemandScenariosBinomial(int ntries, int seed) const {
+	Helpers::resetSeed(seed);
+	ScenarioList<int> scenarios(ntries, static_cast<int>(numClasses));
+	for (int i = 0; i<ntries; i++) {
+		scenarios.setRow(i, pickDemandsBinomial());
+	}
+	return scenarios;
 }
 
 ConsumptionScenario AbstractSimulation::pickConsumptions(int u) const {
@@ -330,10 +266,13 @@ std::vector<bool> Toggles::toVec() const {
 
 Customer::Customer(const json11::Json &obj) :
         name(obj["name"].string_value()),
-        expD(obj["expD"].number_value()),
-        devD(obj["devD"].number_value()),
+        expD(Helpers::numOrElse(obj, "expD")),
+        devD(Helpers::numOrElse(obj, "devD")),
         description(obj["description"].string_value()),
         consumptionPerReqMean(obj["consumptionPerReqMean"].is_number() ? obj["consumptionPerReqMean"].number_value() : obj["consumptionPerReq"].number_value()),
 		consumptionPerReqStdDev(obj["consumptionPerReqStdDev"].is_number() ? obj["consumptionPerReqStdDev"].number_value() : 0.0),
-        revenuePerReq(obj["revenuePerReq"].number_value())
+        revenuePerReq(Helpers::numOrElse(obj, "revenuePerReq")),
+		n(Helpers::intNumOrElse(obj, "n")),
+		p(Helpers::numOrElse(obj, "p"))
+		
 {}

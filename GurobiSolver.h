@@ -1,8 +1,9 @@
 #pragma once
 
-#include "Simulation.h"
-
+#include <list>
 #include <gurobi_c++.h>
+
+#include "Simulation.h"
 
 struct DisplayVar {
 	std::string name;

@@ -57,6 +57,12 @@
     <ClInclude Include="EasyCSV.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="MultiClassSimulation.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="TwoClassSimulation.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Helpers.cpp">
@@ -93,6 +99,12 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="EasyCSV.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="MultiClassSimulation.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="TwoClassSimulation.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

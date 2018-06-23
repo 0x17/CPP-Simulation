@@ -2,6 +2,7 @@
 
 #include <localsolver.h>
 #include <vector>
+
 #include "Simulation.h"
 
 class RevenueComputationNativeFunction : public localsolver::LSNativeFunction {

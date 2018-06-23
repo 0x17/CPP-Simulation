@@ -45,7 +45,7 @@ Result PSSolver::solve(const DemandScenarioList& scenarios, const boost::optiona
 				swarmSize = 20;
 	const double timelimit = globals::TIME_LIMIT;
 
-	auto objective = [&](vector<int> bookingLimits) {
+	const auto objective = [&](vector<int> bookingLimits) {
 		return sim.objectiveWithCVarOption(bookingLimits, scenarios);
 	};
 
@@ -53,7 +53,7 @@ Result PSSolver::solve(const DemandScenarioList& scenarios, const boost::optiona
 	Stopwatch sw;
 
 	sw.start();
-	double tstart = sw.look();
+	const double tstart = sw.look();
 	for (int i = 0; (iterlimit != -1 && i < iterlimit) || (timelimit != -1.0 && sw.look() - tstart < timelimit * 1000.0); i++) {
 		s.update();
 #ifndef __APPLE__
