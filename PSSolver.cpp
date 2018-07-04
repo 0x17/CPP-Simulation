@@ -43,7 +43,7 @@ PSSolver::PSSolver(const AbstractSimulation &_sim) : BookingLimitOptimizer("Part
 Result PSSolver::solve(const DemandScenarioList& scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc) {
 	const int	iterlimit = -1,
 				swarmSize = 20;
-	const double timelimit = globals::TIME_LIMIT;
+	const double timelimit = globals::timeLimit;
 
 	const auto objective = [&](vector<int> bookingLimits) {
 		return sim.objectiveWithCVarOption(bookingLimits, scenarios);

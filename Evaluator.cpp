@@ -143,7 +143,7 @@ Result EvaluatorMultiDimensional::computeOptimum(const DemandScenarioList& scena
 	vector<int> bookingLimits(static_cast<unsigned long>(sim.getNumClasses()));
 	Helpers::Tracer tr("FullEnumerationTrace");
 	Stopwatch sw;
-	const double timelimit = globals::TIME_LIMIT;
+	const double timelimit = globals::timeLimit;
 
 	bookingLimits[0] = sim.getC();
 

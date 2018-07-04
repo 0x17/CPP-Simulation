@@ -58,7 +58,7 @@ Result LSOptimizer::solve(const DemandScenarioList& scenarios, const boost::opti
 	rfunc.setScenarios(scenarios);
 
 	auto lsphase = ls.createPhase();
-	lsphase.setTimeLimit(globals::TIME_LIMIT);
+	lsphase.setTimeLimit(globals::timeLimit);
 
 	ls.solve();
 

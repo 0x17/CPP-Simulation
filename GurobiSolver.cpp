@@ -115,7 +115,7 @@ template<class Func>
 Result GurobiOptimizer::solveCommon(GurobiOptimizer &solver, const DemandScenarioList &scenarios, const boost::optional<ConsumptionScenarioFunc&> consumptionScenarioFunc, Func modelBuilder) {
 	GRBEnv env;
 	env.set(GRB_DoubleParam_MIPGap, 0.0);
-	env.set(GRB_DoubleParam_TimeLimit, globals::TIME_LIMIT);
+	env.set(GRB_DoubleParam_TimeLimit, globals::timeLimit);
 	env.set(GRB_IntParam_Threads, 1);
 
 	GRBModel model(env);

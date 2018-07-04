@@ -124,7 +124,7 @@ namespace Helpers {
 		sw.start();
 		lupdate = chrono::system_clock::now();
 		last_slvtime = 0.0;
-		if(!globals::TRACING_ENABLED) return;
+		if(!globals::tracingEnabled) return;
 		f = std::make_unique<std::ofstream>(filePrefix + ".txt");
 		if(!f->is_open())
 			throw runtime_error("Unable to create " + filePrefix + ".txt!");
@@ -133,18 +133,18 @@ namespace Helpers {
 	}
 
 	Tracer::~Tracer() {
-		if(globals::TRACING_ENABLED) f->close();
+		if(globals::tracingEnabled) f->close();
 	}
 
 	void Tracer::trace(double slvtime, double bks_objval, bool trunc_secs) {
-		if(!globals::TRACING_ENABLED) return;
+		if(!globals::tracingEnabled) return;
 		double insecs = (slvtime / 1000.0);
 		if (trunc_secs) insecs = trunc(insecs);
 		(*f) << (boost::format("%.2f") % insecs) << ";" << bks_objval << endl;
 	}
 
 	void Tracer::intervalTrace(double bks_objval) {
-		if(!globals::TRACING_ENABLED) return;
+		if(!globals::tracingEnabled) return;
 		double slvtime = sw.look();
 		double deltat = chrono::duration<double, milli>(chrono::system_clock::now() - lupdate).count();
 		if(slvtime < 1000.0 && deltat >= MSECS_BETWEEN_TRACES_SHORT) {

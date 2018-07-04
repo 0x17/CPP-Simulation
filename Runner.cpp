@@ -16,26 +16,37 @@
 #include "EasyCSV.h"
 #include "MultiClassSimulation.h"
 #include "Helpers.h"
+#include "Globals.h"
 
 using namespace std;
 
 namespace algo = boost::algorithm;
 namespace fs = boost::filesystem;
 
+double globals::timeLimit = 3.0;
+bool globals::tracingEnabled = false;
+
 struct CommandlineArguments {
 	string instanceName, solverName;
 	int numScenarios;
+	bool tracingEnabled;
+	double timeLimit;
 
-	CommandlineArguments(const string &instanceName,
-		   const string &solverName,
-		   const int numScenarios)
+	CommandlineArguments(
+		const string &instanceName,
+		const string &solverName,
+		const int numScenarios,
+		bool tracingEnabled,
+		double timeLimit)
 			: instanceName(instanceName),
 			  solverName(solverName),
-			  numScenarios(numScenarios) {}
+			  numScenarios(numScenarios),
+			tracingEnabled(tracingEnabled),
+			timeLimit(timeLimit) {}
 };
 
 void showUsage() {
-	cout << "Usage: CPP-Simulation instance=multi_data solver=Gurobi nscenarios=150" << endl;
+	cout << "Usage: CPP-Simulation instance=multi_data solver=Gurobi nscenarios=150 timelimit=50.0 trace=true" << endl;
 	cout << "Solver names = { Gurobi, LocalSolver, ParticleSwarm, FullEnumeration }" << endl;
 }
 
@@ -57,16 +68,23 @@ CommandlineArguments processArguments(const list<string> &args) {
 		throw runtime_error("Not enough args!");
 	}
 
-	CommandlineArguments cargs = { "multi_data.json", "Gurobi", 150 };
+	CommandlineArguments cargs = { "multi_data.json", "Gurobi", 150, false, 30.0 };
 	string numScenariosStr = to_string(cargs.numScenarios);
+	string timeLimitStr = to_string(cargs.timeLimit);
+	string tracingEnabledStr = to_string(cargs.tracingEnabled);
 
 	for(const string &arg : args) {
 		assignFromArg("instance", arg, cargs.instanceName);
 		assignFromArg("solver", arg, cargs.solverName);
 		assignFromArg("nscenarios", arg, numScenariosStr);
+		assignFromArg("timelimit", arg, timeLimitStr);
+		assignFromArg("trace", arg, tracingEnabledStr);
 	}
 
 	cargs.numScenarios = stoi(numScenariosStr);
+	cargs.timeLimit = stod(timeLimitStr);
+	cargs.tracingEnabled = tracingEnabledStr == "true";
+
 	return cargs;
 }
 
@@ -77,15 +95,22 @@ map<string, function<BookingLimitOptimizer*()>> generateSolverNameToObjectMappin
 			{ "ParticleSwarm", [&sim]() { return new PSSolver(sim); }},
 			{ "FullEnumeration", [&sim]() { return new EvaluatorMultiDimensional(sim); }}
 	};
-};
+}
+
+
 
 void Runner::commandLine(const list<string> &args) {
-	CommandlineArguments cfg = processArguments(args);
+	const CommandlineArguments cfg = processArguments(args);
+
+	globals::tracingEnabled = cfg.tracingEnabled;
+	globals::timeLimit = cfg.timeLimit;
+
 	const Toggles toggles("toggles.json");
 	const MultiClassSimulation sim(cfg.instanceName+".json", toggles);
+	const string actualInstanceName = fs::path(cfg.instanceName).stem().string();
 
-	//const auto scenarios = sim.generateDemandScenarios(cfg.numScenarios, 42, SamplingType::Descriptive);
-	const auto scenarios = sim.generateDemandScenariosBinomial(cfg.numScenarios, 42);
+	const auto scenarios = sim.generateDemandScenarios(cfg.numScenarios, 42, SamplingType::Descriptive);
+	//const auto scenarios = sim.generateDemandScenariosBinomial(cfg.numScenarios, 42);
 	auto solverNameToObject = generateSolverNameToObjectMapping(sim);
 	BookingLimitOptimizer *optimizer = solverNameToObject[cfg.solverName]();
 
@@ -98,6 +123,12 @@ void Runner::commandLine(const list<string> &args) {
 		result = optimizer->solve(scenarios, {});
 	}
 	cout << "Result = " << result.toString() << endl;
+
+	const string ofn = cfg.solverName + "Results.txt";
+	if (!fs::exists(ofn)) Helpers::spit("instanceName;profit\n", ofn);
+	Helpers::spitAppend(actualInstanceName + ";" + to_string(result.profit) + "\n", ofn);
+	//fs::rename(cfg.solverName + "Trace.txt", actualInstanceName + "_" + cfg.solverName + "Trace.txt");
+
 	delete optimizer;
 }
 
@@ -117,8 +148,9 @@ list<string> instancesInDirectory(const string &dir) {
 
 void Runner::benchmark(const string &dir) {
 	const Toggles toggles("Toggles.json");
-	static std::array<string, 1> solverNames = { "Gurobi" };
+	//static std::array<string, 1> solverNames = { "Gurobi" };
 	//static std::array<string, 4> solverNames = { "Gurobi", "LocalSolver", "ParticleSwarm", "FullEnumeration" };
+	static std::array<string, 3> solverNames = { "Gurobi", "LocalSolver", "ParticleSwarm" };
 
 	static auto constructBookingLimitsCaption = [](int numClasses) {
 		vector<string> bookingLimitStrs(static_cast<unsigned long>(numClasses));

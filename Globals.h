@@ -8,6 +8,6 @@ namespace globals {
 	const double EPSILON = 1.0; // 0.00000001;
 	const double EPSILON2 = 0.00001;//std::numeric_limits<double>::min();
 	
-	const double TIME_LIMIT = 10.0;
-	const bool TRACING_ENABLED = false;
+	extern double timeLimit;
+	extern bool tracingEnabled;
 }
